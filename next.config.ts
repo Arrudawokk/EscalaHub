@@ -5,7 +5,7 @@ const isDevelopment = process.env.NODE_ENV === "development";
 const contentSecurityPolicy = `
   default-src 'self';
   base-uri 'self';
-  form-action 'self';
+  form-action 'self' mailto:;
   frame-ancestors 'none';
   object-src 'none';
   script-src 'self' 'unsafe-inline' ${isDevelopment ? "'unsafe-eval'" : ""} https://www.googletagmanager.com https://connect.facebook.net https://sdk.mercadopago.com https://www.mercadopago.com;
@@ -21,6 +21,9 @@ const contentSecurityPolicy = `
 const nextConfig: NextConfig = {
   reactStrictMode: true,
   poweredByHeader: false,
+  turbopack: {
+    root: process.cwd(),
+  },
   images: {
     formats: ["image/avif", "image/webp"],
     minimumCacheTTL: 86400,

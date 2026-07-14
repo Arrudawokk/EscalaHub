@@ -16,9 +16,18 @@ declare global {
   }
 }
 
-const googleAnalyticsId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
-const googleTagManagerId = process.env.NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID;
-const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+function validEnvironmentValue(value: string | undefined, pattern: RegExp): string | undefined {
+  const normalized = value?.trim();
+  return normalized && pattern.test(normalized) ? normalized : undefined;
+}
+
+export const analyticsConfig = {
+  googleAnalyticsId: validEnvironmentValue(process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID, /^G-[A-Z0-9]+$/i),
+  googleTagManagerId: validEnvironmentValue(process.env.NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID, /^GTM-[A-Z0-9]+$/i),
+  metaPixelId: validEnvironmentValue(process.env.NEXT_PUBLIC_META_PIXEL_ID, /^\d{5,20}$/),
+} as const;
+
+const { googleAnalyticsId, googleTagManagerId, metaPixelId } = analyticsConfig;
 
 function getProductParameters(product: AnalyticsProduct) {
   return {
@@ -47,9 +56,10 @@ function sendGoogleEvent(name: string, parameters: EventParameters) {
   window.gtag("event", name, parameters);
 }
 
-function sendMetaEvent(name: "PageView" | "ViewContent" | "InitiateCheckout" | "Purchase", parameters?: EventParameters) {
+function sendMetaEvent(name: "PageView" | "ViewContent" | "InitiateCheckout" | "Purchase", parameters?: EventParameters, eventId?: string) {
   if (!metaPixelId || typeof window === "undefined" || !window.fbq) return;
-  window.fbq("track", name, parameters);
+  if (eventId) window.fbq("track", name, parameters, { eventID: eventId });
+  else window.fbq("track", name, parameters);
 }
 
 export function trackPageView(pathname: string) {
@@ -78,8 +88,8 @@ export function trackPurchase(product: AnalyticsProduct, { transactionId, value,
   const metaParameters = { ...getProductParameters(product), currency, value };
   const googleParameters = { currency, items: [{ ...getGoogleItem(product), price: value }], transaction_id: transactionId, value };
   sendGoogleEvent("purchase", googleParameters);
-  sendMetaEvent("Purchase", metaParameters);
-  pushDataLayer({ event: "purchase", ...googleParameters });
+  sendMetaEvent("Purchase", metaParameters, transactionId);
+  pushDataLayer({ event: "purchase", event_id: transactionId, ...googleParameters });
 }
 
 export function trackRouteChange(pathname: string) {

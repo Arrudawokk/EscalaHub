@@ -1,11 +1,7 @@
 import type { Metadata, Viewport } from "next";
-import { Inter, Space_Grotesk } from "next/font/google";
 import { Analytics } from "@/components/analytics/Analytics";
 import { SITE_URL, siteConfig } from "@/lib/site";
 import "./globals.css";
-
-const inter = Inter({ subsets: ["latin"], variable: "--font-body", display: "swap", preload: true });
-const spaceGrotesk = Space_Grotesk({ subsets: ["latin"], variable: "--font-heading", display: "swap", preload: true });
 
 export const metadata: Metadata = {
   metadataBase: new URL(SITE_URL),
@@ -61,7 +57,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   };
 
   return (
-    <html lang={siteConfig.language} className={`dark ${inter.variable} ${spaceGrotesk.variable}`}>
+    <html lang={siteConfig.language} className="dark">
       <body>
         {children}
         <Analytics />

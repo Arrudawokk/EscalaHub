@@ -3,11 +3,9 @@
 import { useEffect, useRef } from "react";
 import { usePathname } from "next/navigation";
 import Script from "next/script";
-import { trackRouteChange } from "@/lib/analytics";
+import { analyticsConfig, trackRouteChange } from "@/lib/analytics";
 
-const googleAnalyticsId = process.env.NEXT_PUBLIC_GOOGLE_ANALYTICS_ID;
-const googleTagManagerId = process.env.NEXT_PUBLIC_GOOGLE_TAG_MANAGER_ID;
-const metaPixelId = process.env.NEXT_PUBLIC_META_PIXEL_ID;
+const { googleAnalyticsId, googleTagManagerId, metaPixelId } = analyticsConfig;
 
 export function Analytics() {
   const pathname = usePathname();

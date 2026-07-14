@@ -39,6 +39,7 @@ export function ProductHero({ product }: { product: Product }) {
                   alt={`Capa de ${product.title}`}
                   width={1024}
                   height={1536}
+                  preload
                   sizes="(max-width: 640px) 82vw, (max-width: 1024px) 470px, 460px"
                   className="h-auto w-full rounded-[21px] object-contain shadow-[0_20px_50px_rgba(0,0,0,.35)]"
                 />

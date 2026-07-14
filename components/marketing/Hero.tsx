@@ -112,6 +112,7 @@ export function Hero({ product }: { product: Product }) {
                   alt={`Mockup de ${product.title}`}
                   width={1024}
                   height={1536}
+                  preload
                   sizes="(max-width: 640px) 82vw, (max-width: 1024px) 470px, 500px"
                   className="relative h-auto w-full rounded-[20px] object-cover shadow-[0_18px_42px_rgba(0,0,0,.34)]"
                 />
