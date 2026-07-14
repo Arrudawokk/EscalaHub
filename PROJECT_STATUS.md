@@ -94,6 +94,8 @@ Antes de aceitar vendas reais no domínio final:
 - Rejeições seguras confirmadas: origem inválida do checkout (403), payload inválido (400), status inválido (400), webhook sem assinatura (401) e download inválido (400).
 - Headers de segurança e cache privado das páginas sensíveis confirmados no ambiente publicado.
 - O HTML público ainda não carrega Mercado Pago.js, GA4, GTM ou Meta Pixel; as variáveis públicas correspondentes precisam ser ativadas antes de tráfego pago.
+- O deploy V1 do commit `179cfd1` concluiu com sucesso no projeto `teste-site-qnxk`; o alias operacional foi revalidado após a publicação.
+- O projeto Vercel duplicado `teste-site` não iniciou um novo deploy para a V1, mas sua configuração antiga ainda deve ser revisada antes de remoção.
 - Relatório, limitações, changelog, notas e checklist final estão em `docs/V1_RELEASE.md`, `docs/KNOWN_LIMITATIONS.md`, `docs/CHANGELOG.md` e `RELEASE_NOTES.md`.
 
 ## Prioridades P1

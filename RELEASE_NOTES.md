@@ -41,6 +41,7 @@ A versão 1.0.0 consolida a EscalaHub como uma plataforma de catálogo, venda, c
 - Rotas principais do deploy: HTTP 200.
 - Rota inexistente: HTTP 404.
 - APIs rejeitam origem, payload, assinatura e links inválidos com os códigos esperados.
+- Deploy V1 concluído com sucesso no projeto Vercel operacional `teste-site-qnxk`.
 
 ## Decisão de lançamento
 

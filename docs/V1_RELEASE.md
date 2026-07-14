@@ -52,7 +52,9 @@
 - Download inválido: 400.
 - CSP, HSTS, COOP, CORP, `nosniff`, `DENY`, Permissions Policy e Referrer Policy presentes.
 - Canonical, Open Graph, Twitter Cards, JSON-LD, robots, sitemap e manifest publicados com a URL operacional.
-- Os dois deployments Vercel conectados ao commit anterior concluíram com status `success`; `teste-site-qnxk` é a origem operacional validada.
+- O deployment V1 do commit `179cfd1` concluiu com status `success` no projeto `teste-site-qnxk`.
+- Após o deploy, Home, produto, checkout, conta, blog, robots, sitemap e manifest foram revalidados no alias operacional; a rota inexistente continuou retornando 404.
+- O projeto duplicado `teste-site` não iniciou um novo deployment para esse commit. A configuração histórica continua documentada para revisão segura, sem remoção automática.
 
 ## Fluxo de compra auditado
 
