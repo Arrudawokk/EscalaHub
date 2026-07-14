@@ -2,145 +2,83 @@
 
 **Projeto:** EscalaHub
 
-**Versão Atual:** v1.0
+**Versão atual:** v1.0 RC2
 
-**Status:** Em desenvolvimento
+**Status:** pronta para homologação final de produção
 
-**Última atualização:** 12/07/2026
+**Última atualização:** 13/07/2026
 
----
+## Objetivo
 
-# Objetivo
+Construir uma plataforma própria, segura e escalável de venda de produtos digitais, independente de marketplaces e preparada para suportar centenas de produtos.
 
-Construir uma plataforma própria de venda de infoprodutos, independente de marketplaces como Kiwify e Hotmart.
+## Stack
 
-A plataforma deve ser escalável, segura e preparada para suportar centenas de produtos digitais.
+- Next.js 16 com App Router
+- React 19 e TypeScript
+- Tailwind CSS e Framer Motion
+- Mercado Pago
+- PostgreSQL
 
----
+## Funcionalidades concluídas
 
-# Stack
+- Home, página de produto, checkout, blog e páginas institucionais.
+- Catálogo tipado e reutilizável de produtos.
+- Design System e interface responsiva.
+- SEO técnico com metadata, canonical, Open Graph, Twitter Cards, sitemap, robots e JSON-LD.
+- Analytics preparado para GA4, GTM e Meta Pixel.
+- Checkout próprio com Pix e cartão tokenizado pelo Mercado Pago.js.
+- Criação de pagamento idempotente, preço validado pelo catálogo e reconciliação server-to-server.
+- Persistência transacional de pedidos em PostgreSQL por meio da abstração `OrderStore`.
+- Webhook com assinatura, janela antirreplay, deduplicação persistente e transições de estado protegidas.
+- Atualização, liberação e revogação de acesso na mesma transação do pedido.
+- Reconciliação ativa pelo endpoint de status quando o webhook atrasa.
+- Download protegido por HMAC, expiração curta, validação do pedido e proxy de origem privada.
+- Retomada do pedido no navegador sem persistir e-mail, CPF ou dados de cartão.
+- Evento `Purchase` ligado somente a pedido aprovado, com identificador estável para deduplicação.
 
-- Next.js (App Router)
-- TypeScript
-- Tailwind CSS
-- Framer Motion
+## Ativação operacional obrigatória
 
----
+Antes de aceitar vendas reais no domínio final:
 
-# Funcionalidades concluídas
+1. Provisionar PostgreSQL com pooler e executar `db/migrations/001_payment_orders.sql`.
+2. Configurar `DATABASE_URL` e todas as credenciais reais do Mercado Pago.
+3. Armazenar o produto em origem privada e configurar as variáveis de entrega descritas em `.env.example`.
+4. Gerar `DELIVERY_TOKEN_SECRET` com no mínimo 32 caracteres aleatórios.
+5. Homologar Pix, cartão aprovado/recusado, webhook, reenvio, reembolso, chargeback e download no ambiente de teste do Mercado Pago.
+6. Configurar consentimento e revisar juridicamente a ativação de tags de marketing.
 
-- Estrutura inicial da aplicação
-- Design System
-- Header
-- Hero
-- Home
-- Página de Produto
-- Checkout próprio
-- Catálogo de produtos
-- SEO inicial
-- Analytics (estrutura)
-- Componentização
-- Integração do Mercado Pago (Pix e cartão tokenizado)
-- Webhook com validação de assinatura e reconsulta server-to-server
-- Evento de conversão `Purchase` conectado à aprovação real do pagamento
+## Prioridades P0 restantes da aplicação
 
----
+- Proteger o dashboard com autenticação e autorização antes de conectar dados reais.
+- Executar a homologação operacional acima no domínio definitivo.
+- Validar backup, restauração e alertas do banco de produção.
 
-# Funcionalidades em andamento
+## Prioridades P1
 
-- Liberação automática do produto (e-mail transacional / download protegido)
-- Persistência de pedidos em banco de dados real (hoje em memória, ver `docs/MERCADO_PAGO.md`)
+- Rate limiting distribuído/WAF nos endpoints de pagamento.
+- Monitoramento e alertas para falhas de webhook, banco, gateway e entrega.
+- E-mail transacional como canal adicional de recuperação do acesso.
+- Área do cliente com histórico de pedidos e novo download autenticado.
+- Meta Conversions API e Google Enhanced Conversions server-side.
+- Testes E2E automatizados no ambiente sandbox do Mercado Pago.
 
----
+## Decisões técnicas
 
-# Próxima prioridade (P0)
+- A aplicação continua desacoplada do Mercado Pago por `PaymentGateway`.
+- O armazenamento continua desacoplado por `OrderStore`.
+- Em desenvolvimento sem `DATABASE_URL`, existe fallback em memória; em produção, a aplicação falha de forma segura e recusa o checkout sem banco.
+- O arquivo digital nunca fica em `public/`; a rota de entrega valida o acesso antes de buscar a origem privada.
+- Dados de cartão nunca passam pelo servidor da EscalaHub.
+- Nenhum segredo utiliza prefixo `NEXT_PUBLIC_`.
 
-- Persistir pedidos em banco transacional antes de executar em múltiplas instâncias.
-- Conectar a aprovação do pagamento à entrega idempotente do produto.
-- Proteger o dashboard antes de conectar dados reais.
+## Qualidade da RC2
 
-Ver `docs/MERCADO_PAGO.md` e `docs/RC1_AUDIT.md` para o fluxo completo e os bloqueios de produção.
+- `npm install`: aprovado, sem vulnerabilidades reportadas.
+- `npm run lint`: aprovado.
+- `npm run type-check`: aprovado.
+- `npm run build`: aprovado.
+- Rotas negativas de status, download, webhook e origem do checkout: validadas.
+- Checkout revisado em mobile e desktop sem overflow de conteúdo.
 
----
-
-# Próximas prioridades (P1)
-
-- Área do Cliente
-- Download automático
-- Histórico de pedidos
-- Perfil do usuário
-
----
-
-# Futuras melhorias (P2)
-
-- Marketplace
-- Cupons
-- Programa de afiliados
-- Dashboard administrativo
-- Múltiplos autores
-- Assinaturas
-
----
-
-# Arquitetura
-
-O projeto deve permanecer desacoplado.
-
-Nunca acoplar componentes ao gateway de pagamento.
-
-Toda comunicação deve acontecer através da camada:
-
-lib/payments/
-
----
-
-# Padrões
-
-- Reutilizar componentes existentes.
-- Não criar componentes duplicados.
-- Não utilizar any.
-- Não deixar código morto.
-- Sempre executar lint, type-check e build antes de finalizar.
-
----
-
-# Decisões técnicas
-
-- Checkout próprio.
-- Sem dependência da Kiwify.
-- Gateway escolhido: Mercado Pago.
-- Arquitetura preparada para adicionar Stripe futuramente (ver `docs/MERCADO_PAGO.md`).
-- Produtos carregados a partir do catálogo.
-- Componentes reutilizáveis.
-- Pedidos persistidos via interface `OrderStore`, hoje em memória; trocar por banco de dados real antes de escalar para múltiplas instâncias.
-
----
-
-# Bugs conhecidos
-
-Nenhum erro crítico de compilação registrado. O build deixou de depender do Google Fonts e foi validado com sucesso em 13 de julho de 2026.
-
-Os bloqueios operacionais da RC1 estão documentados em `docs/RC1_AUDIT.md` e impedem a aprovação para tráfego pago até serem resolvidos.
-
----
-
-# Critério para considerar a versão 1.0 pronta
-
-- Mercado Pago integrado.
-- Webhooks funcionando.
-- Checkout validado.
-- Meta Pixel configurado.
-- Google Analytics configurado.
-- Build sem erros.
-- TypeScript sem erros.
-- ESLint sem erros.
-- Deploy em produção.
-
----
-
-# Observações
-
-Toda alteração futura deve preservar a arquitetura existente.
-
-A prioridade da EscalaHub é estabilidade, escalabilidade e facilidade de manutenção.
+Consulte `docs/RC2_REPORT.md` e `docs/MERCADO_PAGO.md` para o fluxo completo, os controles de segurança e os riscos operacionais restantes.

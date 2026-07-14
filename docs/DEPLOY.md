@@ -32,6 +32,13 @@ Obrigatórias em produção:
 - `NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY`: chave pública usada pelo Mercado Pago.js no navegador.
 - `MERCADO_PAGO_ACCESS_TOKEN`: credencial privada usada somente no servidor.
 - `MERCADO_PAGO_WEBHOOK_SECRET`: segredo privado para validar notificações.
+- `DATABASE_URL`: conexão PostgreSQL com pooler para persistência transacional.
+- `DELIVERY_TOKEN_SECRET`: segredo aleatório com pelo menos 32 caracteres.
+- `PRODUCT_TRAFEGO_DOWNLOAD_URL`: origem HTTPS privada do arquivo digital.
+
+Opcional para origens privadas que exigem header:
+
+- `PRODUCT_TRAFEGO_DOWNLOAD_AUTHORIZATION`: valor completo do header `Authorization`.
 
 Opcionais, apenas com IDs reais:
 
@@ -42,6 +49,16 @@ Opcionais, apenas com IDs reais:
 Use `.env.example` como referência. A ausência de um ID mantém a integração correspondente desativada.
 
 As três credenciais do Mercado Pago devem pertencer ao mesmo ambiente. O checkout recusa criar cobranças quando a URL pública não está configurada com HTTPS.
+
+## Banco e entrega
+
+Antes do primeiro deploy que aceite pagamentos, execute a migração no banco do mesmo ambiente:
+
+```bash
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_payment_orders.sql
+```
+
+Nunca coloque o produto digital em `public/`. Configure uma origem HTTPS privada; a aplicação transmite o arquivo somente depois de validar pedido, aprovação e link temporário.
 
 ## Analytics e Pixel
 
@@ -62,4 +79,6 @@ Não dispare `Purchase` por clique, envio de formulário ou página de agradecim
 - confirmar que tags não essenciais só serão ativadas depois da implementação do consentimento aplicável;
 - confirmar headers de segurança e HTTPS;
 - homologar assinatura, reenvio e reconciliação do webhook em Preview;
+- confirmar que reembolso e chargeback revogam o download;
+- confirmar que o link expirado é recusado e que um novo link é emitido pela consulta do pedido;
 - executar uma compra real somente depois da integração de pagamento homologada.
