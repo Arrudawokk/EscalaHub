@@ -1,51 +1,47 @@
-# EscalaHub 1.0 — Release Notes
+# EscalaHub 1.0.0 — Release Notes
 
-**Versão:** 1.0 RC5  
 **Data:** 14/07/2026
+
+**Branch:** `main`
+
+**Deploy operacional:** https://teste-site-qnxk.vercel.app
 
 ## Visão geral
 
-A EscalaHub 1.0 consolida a recuperação do projeto, o endurecimento do fluxo de pagamento, a mensuração de campanhas, a entrega protegida e o refinamento final de produção em uma única base publicada pela branch `main`.
+A versão 1.0.0 consolida a EscalaHub como uma plataforma de catálogo, venda, confirmação e entrega protegida de produtos digitais. O código foi auditado para estabilidade, segurança, performance, conversão, SEO e escalabilidade, sem introduzir funcionalidades experimentais.
 
-## O que está incluído
+## Entregas da versão
 
-- Landing Page premium, responsiva e orientada a clareza de oferta.
-- Catálogo reutilizável para múltiplos produtos digitais.
-- Página de produto com benefícios, módulos, público, garantia, FAQ e CTAs.
-- Checkout próprio com Pix e cartão via Mercado Pago.
-- Preço validado no servidor, idempotência e tratamento de estados de pagamento.
-- Webhook assinado, antirreplay, deduplicação persistente e reconciliação autoritativa.
+- Landing Page, página de produto e checkout responsivos e orientados à clareza da oferta.
+- Catálogo tipado e reutilizável para múltiplos produtos.
+- Checkout próprio com Pix e cartão tokenizado pelo Mercado Pago.js.
+- Validação server-side do catálogo e do valor, idempotência e reconciliação autoritativa.
+- Webhook assinado, janela antirreplay, deduplicação persistente e transições protegidas.
 - PostgreSQL para pedidos, acessos, contas e sessões.
-- Entrega automática após aprovação e download protegido.
-- Área do cliente com biblioteca, histórico de pedidos e perfil preparado.
-- Analytics centralizado para GA4, GTM e Meta Pixel.
-- Eventos `PageView`, `ViewContent`, `InitiateCheckout` e `Purchase` com deduplicação.
-- Preservação de UTMs, `gclid` e `fbclid` durante a jornada.
-- SEO técnico com canonical, Open Graph, Twitter Cards, JSON-LD, robots, sitemap, favicon e manifest.
-- Blog baseado em arquivos, páginas institucionais e políticas.
-- Estados de loading, erro, vazio e 404 consistentes.
-- Headers de segurança e separação entre dados públicos e segredos.
+- Entrega automática para pedido aprovado e download por rota protegida.
+- Área autenticada com biblioteca, pedidos e perfil preparado.
+- Analytics centralizado para GA4, GTM e Meta Pixel, com UTMs e deduplicação de `Purchase`.
+- SEO completo com metadata, canonical, Open Graph, Twitter Cards, JSON-LD, robots, sitemap, favicon e manifest.
+- Blog por arquivos, páginas institucionais, políticas, loading, estados vazios, erros e 404.
+- Headers de segurança, cache privado para áreas sensíveis e separação entre variáveis públicas e segredos.
 
-## Refinamentos da RC5
+## Ajustes finais da 1.0.0
 
-- Copy da Home revisada para evitar promessas implícitas de rentabilidade.
-- Oferta final com preço, garantia, acesso e ausência de mensalidade.
-- FAQ conectado ao catálogo, sem conteúdo duplicado.
-- URL canônica e callback do webhook compatíveis com variáveis automáticas da Vercel.
-- Menor hidratação global e menu mobile sem dependência de Framer Motion.
-- Checkout com estado explícito do SDK de cartão e Pix preservado como alternativa.
-- Validação antecipada dos dados do cartão antes da tokenização.
-- Headers adicionais de isolamento e política cross-domain.
+- Versão do pacote atualizada de `0.1.0` para `1.0.0`.
+- Remoção do template raiz vazio, eliminando remontagens sem benefício entre navegações.
+- Sitemap corrigido para não declarar páginas estáticas como modificadas a cada novo build.
+- Datas reais dos artigos continuam publicadas no sitemap.
 
-## Qualidade
+## Validação
 
-- Dependências auditadas sem vulnerabilidades reportadas.
-- ESLint aprovado.
-- TypeScript aprovado.
-- Build Next.js aprovado com 33 rotas.
-- Home, produto, checkout, blog e conta validados.
-- 404, canonical, robots e sitemap validados no build de produção.
+- `npm install`: aprovado; 367 pacotes auditados, 0 vulnerabilidades reportadas.
+- `npm run lint`: aprovado.
+- `npm run type-check`: aprovado.
+- `npm run build`: aprovado com 33 rotas.
+- Rotas principais do deploy: HTTP 200.
+- Rota inexistente: HTTP 404.
+- APIs rejeitam origem, payload, assinatura e links inválidos com os códigos esperados.
 
-## Antes de vender
+## Decisão de lançamento
 
-Preencha as credenciais reais da Vercel, execute as migrações, conecte a origem privada do produto, homologue o Mercado Pago no sandbox e valide GA4, GTM e Meta Pixel no domínio definitivo. Consulte `docs/RC5_REPORT.md` e `docs/DEPLOY.md` para o checklist operacional.
+O código V1 está aprovado. Vendas reais e campanhas continuam bloqueadas até a configuração e homologação das credenciais, banco, arquivo privado, analytics e domínio definitivo descritas em [docs/V1_RELEASE.md](docs/V1_RELEASE.md) e [docs/KNOWN_LIMITATIONS.md](docs/KNOWN_LIMITATIONS.md).

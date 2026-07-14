@@ -2,9 +2,9 @@
 
 **Projeto:** EscalaHub
 
-**Versão atual:** v1.0 RC5
+**Versão atual:** v1.0.0
 
-**Status:** RC5 validada localmente e preparada para publicação em produção
+**Status:** código V1 aprovado e publicado; lançamento comercial condicionado ao checklist operacional
 
 **Última atualização:** 14/07/2026
 
@@ -81,6 +81,20 @@ Antes de aceitar vendas reais no domínio final:
 - Apontar o domínio final para este projeto antes de iniciar campanhas. `escalahub.com` ainda publica outra aplicação.
 - Validar backup, restauração e alertas do banco de produção.
 - Consolidar os dois projetos Vercel em um único projeto, preservando variáveis e domínios do projeto operacional.
+
+## Qualidade da V1
+
+- Pacote marcado como `1.0.0` em `package.json` e no lockfile.
+- Sitemap deixou de atribuir uma data de alteração artificial a páginas estáticas em todo deploy; datas reais dos artigos foram preservadas.
+- Template raiz sem comportamento removido para evitar remontagens desnecessárias entre rotas.
+- `npm install`: 367 pacotes auditados e nenhuma vulnerabilidade reportada.
+- `npm run lint`, `npm run type-check` e `npm run build`: aprovados com Next.js 16.2.10 e 33 rotas.
+- Home, produto, checkout, conteúdo, institucionais, conta, robots, sitemap e manifest: HTTP 200 no deploy operacional.
+- Rota inexistente: HTTP 404 com fallback próprio.
+- Rejeições seguras confirmadas: origem inválida do checkout (403), payload inválido (400), status inválido (400), webhook sem assinatura (401) e download inválido (400).
+- Headers de segurança e cache privado das páginas sensíveis confirmados no ambiente publicado.
+- O HTML público ainda não carrega Mercado Pago.js, GA4, GTM ou Meta Pixel; as variáveis públicas correspondentes precisam ser ativadas antes de tráfego pago.
+- Relatório, limitações, changelog, notas e checklist final estão em `docs/V1_RELEASE.md`, `docs/KNOWN_LIMITATIONS.md`, `docs/CHANGELOG.md` e `RELEASE_NOTES.md`.
 
 ## Prioridades P1
 
