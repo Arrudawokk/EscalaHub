@@ -28,6 +28,7 @@ export const analyticsConfig = {
 } as const;
 
 const { googleAnalyticsId, googleTagManagerId, metaPixelId } = analyticsConfig;
+const trackedPurchases = new Set<string>();
 
 function getProductParameters(product: AnalyticsProduct) {
   return {
@@ -85,6 +86,16 @@ export function trackInitiateCheckout(product: AnalyticsProduct) {
 }
 
 export function trackPurchase(product: AnalyticsProduct, { transactionId, value, currency = product.currency }: PurchaseParameters) {
+  if (typeof window === "undefined") return;
+  if (trackedPurchases.has(transactionId)) return;
+  const storageKey = `escalahub:purchase:${transactionId}`;
+  try {
+    if (window.localStorage.getItem(storageKey)) return;
+    window.localStorage.setItem(storageKey, "1");
+  } catch {
+    // O Set em memória ainda evita duplicidade durante a sessão atual.
+  }
+  trackedPurchases.add(transactionId);
   const metaParameters = { ...getProductParameters(product), currency, value };
   const googleParameters = { currency, items: [{ ...getGoogleItem(product), price: value }], transaction_id: transactionId, value };
   sendGoogleEvent("purchase", googleParameters);
