@@ -11,6 +11,7 @@ import { isValidCpf, isValidEmail, onlyDigits, splitFullName } from "@/lib/payme
 import { logger } from "@/lib/server/logger";
 import { issueCustomerSession } from "@/lib/account/session";
 import { AccountStoreUnavailableError } from "@/lib/account/store";
+import { hasDeploymentSiteUrl, SITE_URL } from "@/lib/site";
 
 export const runtime = "nodejs";
 
@@ -50,14 +51,10 @@ function isAllowedOrigin(request: Request): boolean {
 }
 
 function getNotificationUrl(): string | null {
-  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (!configuredSiteUrl) return null;
+  if (!hasDeploymentSiteUrl) return null;
 
   try {
-    const url = new URL(configuredSiteUrl);
-    const localDevelopment = process.env.NODE_ENV === "development" && ["localhost", "127.0.0.1"].includes(url.hostname);
-    if (url.protocol !== "https:" && !localDevelopment) return null;
-    return new URL("/api/payments/webhook", url).toString();
+    return new URL("/api/payments/webhook", SITE_URL).toString();
   } catch {
     return null;
   }

@@ -1,6 +1,25 @@
-const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
+function normalizeSiteUrl(value: string | undefined): string | null {
+  const normalized = value?.trim();
+  if (!normalized) return null;
 
-export const SITE_URL = (configuredSiteUrl || "https://escalahub.com").replace(/\/$/, "");
+  try {
+    const url = new URL(normalized);
+    const isLocalDevelopment = process.env.NODE_ENV === "development" && ["localhost", "127.0.0.1"].includes(url.hostname);
+    if (url.protocol !== "https:" && !(isLocalDevelopment && url.protocol === "http:")) return null;
+    return url.origin;
+  } catch {
+    return null;
+  }
+}
+
+const configuredSiteUrl = normalizeSiteUrl(process.env.NEXT_PUBLIC_SITE_URL);
+const vercelProductionHost = process.env.VERCEL_PROJECT_PRODUCTION_URL || process.env.VERCEL_URL;
+const vercelProductionUrl = normalizeSiteUrl(
+  vercelProductionHost ? `https://${vercelProductionHost}` : undefined,
+);
+
+export const hasDeploymentSiteUrl = Boolean(configuredSiteUrl || vercelProductionUrl);
+export const SITE_URL = configuredSiteUrl || vercelProductionUrl || "https://escalahub.com";
 
 export const siteConfig = {
   name: "EscalaHub",
