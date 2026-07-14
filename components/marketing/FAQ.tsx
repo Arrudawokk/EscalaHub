@@ -2,7 +2,7 @@ import { FiPlus as Plus } from "react-icons/fi";
 import type { Product } from "@/lib/catalog";
 
 export function FAQ({ product }: { product: Product }) {
-  const questions = product.faq.slice(0, 5);
+  const questions = [...product.faq.slice(0, 4), ...product.faq.slice(-1)];
   return (
     <section id="faq" className="section relative overflow-hidden bg-[#090c12]">
       <div className="pointer-events-none absolute right-[-12rem] top-[-12rem] h-[34rem] w-[34rem] rounded-full bg-blue-600/[.07] blur-[140px]" />
