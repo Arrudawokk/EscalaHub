@@ -4,9 +4,9 @@
 
 **Versão atual:** v1.0 RC4
 
-**Status:** pronta para homologação da área do cliente, entrega e produção
+**Status:** RC4 promovida para `main` e publicada em produção
 
-**Última atualização:** 13/07/2026
+**Última atualização:** 14/07/2026
 
 ## Objetivo
 
@@ -65,10 +65,19 @@ Antes de aceitar vendas reais no domínio final:
 8. Validar todos os eventos no Meta Test Events, GA4 DebugView e modo Preview do GTM no domínio definitivo.
 9. Homologar criação, retomada e encerramento de sessão, biblioteca e download autenticado em produção.
 
+## Produção
+
+- Branch oficial: `main`, atualizada por fast-forward com toda a sequência RC1–RC4.
+- URL operacional validada: `https://teste-site-qnxk.vercel.app`.
+- Home, produto, checkout, blog e conta respondem HTTP 200.
+- O repositório possui dois projetos Vercel conectados. `teste-site-qnxk` é o projeto operacional; `teste-site` deve ser revisado e removido somente depois de confirmar domínios e variáveis no painel.
+- O endereço `teste-site.vercel.app` não está atribuído ao deploy operacional e não deve ser divulgado.
+
 ## Prioridades P0 restantes da aplicação
 
 - Executar a homologação operacional acima no domínio definitivo.
 - Validar backup, restauração e alertas do banco de produção.
+- Consolidar os dois projetos Vercel em um único projeto, preservando variáveis e domínios do projeto operacional.
 
 ## Prioridades P1
 

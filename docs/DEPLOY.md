@@ -17,12 +17,20 @@ Nunca versionar `.env.local`, tokens, chaves ou credenciais.
 
 ## Vercel
 
-1. Importe o repositório GitHub na Vercel.
-2. Selecione o preset Next.js.
-3. Mantenha `npm run build` como comando de build.
-4. Cadastre as variáveis no ambiente correto.
-5. Publique primeiro em Preview e valide Home, produto, checkout, sitemap e robots.
-6. Promova para Production e configure o domínio canônico.
+O projeto operacional validado é `teste-site-qnxk`, publicado em `https://teste-site-qnxk.vercel.app`.
+
+1. Conecte apenas o repositório `Arrudawokk/teste-site-`.
+2. Use a branch `main` como Production Branch.
+3. Mantenha Root Directory na raiz (`.`).
+4. Selecione o preset Next.js.
+5. Use `npm install` como Install Command ou mantenha a detecção automática.
+6. Use `npm run build` como Build Command ou mantenha a detecção automática.
+7. Não configure Output Directory; o adaptador Next.js gerencia `.next` automaticamente.
+8. Cadastre as variáveis no ambiente correto.
+9. Publique primeiro em Preview e valide Home, produto, checkout, sitemap e robots.
+10. Promova para Production e configure o domínio canônico.
+
+Não conecte o mesmo repositório a projetos Vercel duplicados. Em 14/07/2026 foram encontrados `teste-site` e `teste-site-qnxk`; o segundo é o projeto operacional. Antes de remover o duplicado, compare domínios e variáveis no painel para evitar perda de configuração.
 
 ## Variáveis de ambiente
 
@@ -52,10 +60,11 @@ As três credenciais do Mercado Pago devem pertencer ao mesmo ambiente. O checko
 
 ## Banco e entrega
 
-Antes do primeiro deploy que aceite pagamentos, execute a migração no banco do mesmo ambiente:
+Antes do primeiro deploy que aceite pagamentos, execute as migrações em ordem no banco do mesmo ambiente:
 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_payment_orders.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/002_customer_accounts.sql
 ```
 
 Nunca coloque o produto digital em `public/`. Configure uma origem HTTPS privada; a aplicação transmite o arquivo somente depois de validar pedido, aprovação e link temporário.
