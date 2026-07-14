@@ -9,6 +9,8 @@ export type OrderRecord = {
   amount: number;
   currency: string;
   payerEmail: string;
+  payerName?: string;
+  gateway: "mercado_pago";
   method: PaymentMethodType;
   status: PaymentStatus;
   accessStatus: ProductAccessStatus;
@@ -36,6 +38,7 @@ export interface OrderStore {
   applyPaymentUpdate(update: PaymentUpdate): Promise<PaymentUpdateResult>;
   claimGatewaySync(externalReference: string, minimumIntervalMs: number): Promise<boolean>;
   getByExternalReference(externalReference: string): Promise<OrderRecord | null>;
+  listByPayerEmail(payerEmail: string): Promise<OrderRecord[]>;
 }
 
 export class OrderStoreUnavailableError extends Error {
@@ -109,6 +112,14 @@ class InMemoryOrderStore implements OrderStore {
     return order ? { ...order } : null;
   }
 
+  async listByPayerEmail(payerEmail: string): Promise<OrderRecord[]> {
+    const normalizedEmail = payerEmail.trim().toLowerCase();
+    return [...this.ordersByReference.values()]
+      .filter((order) => order.payerEmail.trim().toLowerCase() === normalizedEmail)
+      .sort((left, right) => Date.parse(right.createdAt) - Date.parse(left.createdAt))
+      .map((order) => ({ ...order }));
+  }
+
 }
 
 type OrderRow = {
@@ -117,6 +128,8 @@ type OrderRow = {
   amount_cents: number;
   currency: string;
   payer_email: string;
+  payer_name: string | null;
+  payment_gateway: "mercado_pago";
   payment_method: PaymentMethodType;
   payment_status: PaymentStatus;
   access_status: ProductAccessStatus;
@@ -138,6 +151,8 @@ function rowToOrder(row: OrderRow): OrderRecord {
     amount: row.amount_cents / 100,
     currency: row.currency,
     payerEmail: row.payer_email,
+    payerName: row.payer_name ?? undefined,
+    gateway: row.payment_gateway,
     method: row.payment_method,
     status: row.payment_status,
     accessStatus: row.access_status,
@@ -166,13 +181,13 @@ class PostgresOrderStore implements OrderStore {
     try {
       const rows = await this.sql<{ external_reference: string }[]>`
         INSERT INTO payment_orders (
-          external_reference, product_slug, amount_cents, currency, payer_email,
+          external_reference, product_slug, amount_cents, currency, payer_email, payer_name,
           payment_method, payment_status, access_status, gateway_payment_id,
-          access_granted_at, gateway_synced_at, created_at, updated_at
+          payment_gateway, access_granted_at, gateway_synced_at, created_at, updated_at
         ) VALUES (
           ${record.externalReference}, ${record.productSlug}, ${Math.round(record.amount * 100)},
-          ${record.currency}, ${record.payerEmail}, ${record.method}, ${record.status},
-          ${record.accessStatus}, ${record.gatewayPaymentId ?? null}, ${record.accessGrantedAt ?? null},
+          ${record.currency}, ${record.payerEmail}, ${record.payerName ?? null}, ${record.method}, ${record.status},
+          ${record.accessStatus}, ${record.gatewayPaymentId ?? null}, ${record.gateway}, ${record.accessGrantedAt ?? null},
           ${record.gatewaySyncedAt ?? null}, ${record.createdAt}, ${record.updatedAt}
         )
         ON CONFLICT (external_reference) DO NOTHING
@@ -285,6 +300,20 @@ class PostgresOrderStore implements OrderStore {
       return rows[0] ? rowToOrder(rows[0]) : null;
     } catch (error) {
       throw new OrderStoreUnavailableError("Falha ao consultar o pedido.", error);
+    }
+  }
+
+  async listByPayerEmail(payerEmail: string): Promise<OrderRecord[]> {
+    try {
+      const rows = await this.sql<OrderRow[]>`
+        SELECT *
+        FROM payment_orders
+        WHERE LOWER(payer_email) = ${payerEmail.trim().toLowerCase()}
+        ORDER BY created_at DESC
+      `;
+      return rows.map(rowToOrder);
+    } catch (error) {
+      throw new OrderStoreUnavailableError("Falha ao consultar os pedidos do cliente.", error);
     }
   }
 

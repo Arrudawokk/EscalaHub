@@ -1,0 +1,3 @@
+export default function AccountLoading() {
+  return <main className="min-h-screen bg-[#070a10] px-5 py-24 text-white" aria-busy="true" aria-label="Carregando área do cliente"><div className="mx-auto max-w-6xl animate-pulse motion-reduce:animate-none"><div className="h-8 w-52 rounded-xl bg-white/[.07]" /><div className="mt-4 h-4 w-80 max-w-full rounded bg-white/[.05]" /><div className="mt-10 grid gap-4 sm:grid-cols-3">{[1, 2, 3].map((item) => <div key={item} className="h-32 rounded-[24px] border border-white/[.06] bg-white/[.025]" />)}</div><div className="mt-10 h-72 rounded-[24px] border border-white/[.06] bg-white/[.025]" /></div></main>;
+}

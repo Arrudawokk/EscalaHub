@@ -5,6 +5,8 @@ import { PaymentGatewayError } from "@/lib/payments/interfaces";
 import { getOrderStore, OrderStoreUnavailableError, type OrderRecord } from "@/lib/payments/orderStore";
 import { reconcilePayment } from "@/lib/payments/reconciliation";
 import { logger } from "@/lib/server/logger";
+import { issueCustomerSession } from "@/lib/account/session";
+import { AccountStoreUnavailableError } from "@/lib/account/store";
 
 export const runtime = "nodejs";
 
@@ -12,12 +14,21 @@ const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3
 const RESPONSE_OPTIONS = { headers: { "Cache-Control": "no-store, max-age=0" } };
 const GATEWAY_SYNC_INTERVAL_MS = 8_000;
 
-function response(order: OrderRecord) {
+async function response(order: OrderRecord) {
+  if (order.status === "approved" && order.accessStatus === "granted") {
+    try {
+      await issueCustomerSession(order);
+    } catch (error) {
+      if (!(error instanceof AccountStoreUnavailableError)) throw error;
+      logger.warn("account.session_deferred", { orderId: order.externalReference });
+    }
+  }
   return NextResponse.json(
     {
       status: order.status,
       delivery: getDeliveryDetails(order),
       purchaseEventId: order.status === "approved" ? order.externalReference : undefined,
+      accountUrl: order.status === "approved" ? "/account" : undefined,
     },
     RESPONSE_OPTIONS,
   );
@@ -52,7 +63,7 @@ export async function GET(request: Request) {
       }
     }
 
-    return response(order);
+    return await response(order);
   } catch (error) {
     if (error instanceof OrderStoreUnavailableError) {
       logger.error("payment.status_store_unavailable", { orderId });

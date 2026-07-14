@@ -9,6 +9,8 @@ import { reconcilePayment } from "@/lib/payments/reconciliation";
 import type { CreatePaymentInput, PaymentResult } from "@/lib/payments/types";
 import { isValidCpf, isValidEmail, onlyDigits, splitFullName } from "@/lib/payments/utils";
 import { logger } from "@/lib/server/logger";
+import { issueCustomerSession } from "@/lib/account/session";
+import { AccountStoreUnavailableError } from "@/lib/account/store";
 
 export const runtime = "nodejs";
 
@@ -65,7 +67,15 @@ function isSameOrder(order: OrderRecord, productSlug: string, method: "pix" | "c
   return order.productSlug === productSlug && order.method === method && order.payerEmail.toLowerCase() === email.toLowerCase();
 }
 
-function paymentResponse(result: PaymentResult, order: OrderRecord, status = 201) {
+async function paymentResponse(result: PaymentResult, order: OrderRecord, status = 201) {
+  if (order.status === "approved" && order.accessStatus === "granted") {
+    try {
+      await issueCustomerSession(order);
+    } catch (error) {
+      if (!(error instanceof AccountStoreUnavailableError)) throw error;
+      logger.warn("account.session_deferred", { orderId: order.externalReference });
+    }
+  }
   return json(
     {
       orderId: order.externalReference,
@@ -73,6 +83,7 @@ function paymentResponse(result: PaymentResult, order: OrderRecord, status = 201
       pix: result.pix,
       delivery: getDeliveryDetails(order),
       purchaseEventId: order.status === "approved" ? order.externalReference : undefined,
+      accountUrl: order.status === "approved" ? "/account" : undefined,
     },
     status,
   );
@@ -146,6 +157,8 @@ export async function POST(request: Request) {
       amount: product.price,
       currency: product.currency,
       payerEmail: email,
+      payerName: name,
+      gateway: "mercado_pago",
       method: body.method,
       status: "pending",
       accessStatus: "pending",
@@ -163,7 +176,7 @@ export async function POST(request: Request) {
         const existingPayment = await getPaymentGateway().getPayment(existing.gatewayPaymentId);
         const reconciled = await reconcilePayment(orderStore, existing, existingPayment);
         if (!reconciled.order) return json({ error: "O pagamento existente não corresponde ao pedido." }, 409);
-        return paymentResponse(existingPayment, reconciled.order, 200);
+        return await paymentResponse(existingPayment, reconciled.order, 200);
       }
     }
 
@@ -172,7 +185,7 @@ export async function POST(request: Request) {
     const reconciled = await reconcilePayment(orderStore, currentOrder, result);
     if (!reconciled.order) return json({ error: "Não foi possível reconciliar o pagamento com o pedido." }, 409);
     logger.info("payment.created", { orderId: externalReference, gatewayPaymentId: result.gatewayPaymentId, status: reconciled.order.status });
-    return paymentResponse(result, reconciled.order);
+    return await paymentResponse(result, reconciled.order);
   } catch (error) {
     if (error instanceof OrderStoreUnavailableError) {
       logger.error("payment.store_unavailable", { orderId: externalReference });

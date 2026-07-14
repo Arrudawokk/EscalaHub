@@ -4,7 +4,7 @@ import { siteConfig } from "@/lib/site";
 
 const footerGroups = [
   { title: "Explorar", links: [{ label: "Produtos", href: "/#produto" }, { label: "Blog", href: "/blog" }] },
-  { title: "EscalaHub", links: [{ label: "Sobre", href: "/sobre" }, { label: "Contato", href: "/contato" }] },
+  { title: "EscalaHub", links: [{ label: "Minha conta", href: "/account" }, { label: "Sobre", href: "/sobre" }, { label: "Contato", href: "/contato" }] },
   { title: "Legal", links: [{ label: "Privacidade", href: "/privacidade" }, { label: "Termos", href: "/termos" }, { label: "Cookies", href: "/cookies" }, { label: "LGPD", href: "/LGPD" }] },
 ];
 

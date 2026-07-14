@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Script from "next/script";
 import { FormEvent, useEffect, useRef, useState } from "react";
-import { FiAlertCircle, FiArrowLeft, FiCheck, FiCheckCircle, FiCopy, FiCreditCard, FiDownloadCloud, FiFileText, FiLock, FiMail, FiPlus, FiRefreshCw, FiShield } from "react-icons/fi";
+import { FiAlertCircle, FiArrowLeft, FiCheck, FiCheckCircle, FiCopy, FiCreditCard, FiDownloadCloud, FiFileText, FiLock, FiMail, FiPackage, FiPlus, FiRefreshCw, FiShield } from "react-icons/fi";
 import { SiPix } from "react-icons/si";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
@@ -115,7 +115,7 @@ export function Checkout({ product }: { product: Product }) {
       try {
         const response = await fetch(`/api/payments/status?orderId=${orderId}`, { cache: "no-store" });
         if (response.ok) {
-          const data = (await response.json()) as { status: SubmissionStatus; delivery: DeliveryDetails; purchaseEventId?: string };
+          const data = (await response.json()) as { status: SubmissionStatus; delivery: DeliveryDetails; purchaseEventId?: string; accountUrl?: string };
           if (cancelled) return;
           setStatus(data.status);
           setDelivery(data.delivery);
@@ -224,6 +224,7 @@ export function Checkout({ product }: { product: Product }) {
         pix?: PixPaymentDetails;
         delivery?: DeliveryDetails;
         purchaseEventId?: string;
+        accountUrl?: string;
         error?: string;
       };
       if (!response.ok || !data.orderId || !data.status) {
@@ -334,11 +335,11 @@ export function Checkout({ product }: { product: Product }) {
             <div className="flex justify-between text-sm"><span className="text-zinc-500">Total</span><strong className="text-white">{formattedPrice}</strong></div>
             <div className="mt-3 flex justify-between text-sm"><span className="text-zinc-500">Status</span><span className={`font-bold ${statusColor}`}>{statusLabel[status]}</span></div>
           </div>
-          <p className="relative mt-5 text-xs leading-5 text-zinc-500">O link de download é temporário e fica disponível somente para pedidos aprovados.</p>
+          <p className="relative mt-5 text-xs leading-5 text-zinc-500">Pedido: <span className="font-mono text-zinc-400">{orderId}</span>. Guarde este código para recuperar o acesso, se necessário.</p>
           {isFailed ? (
             <Button type="button" size="lg" className="relative mt-8 w-full" onClick={resetPaymentAttempt}>Tentar novamente</Button>
           ) : isApproved && delivery?.status === "ready" ? (
-            <Button asChild size="lg" className="relative mt-8 w-full"><a href={delivery.downloadUrl}><FiDownloadCloud /> Baixar meu e-book</a></Button>
+            <div className="relative mt-8 grid gap-3"><Button asChild size="lg" className="w-full"><a href={delivery.downloadUrl}><FiDownloadCloud /> Baixar meu e-book</a></Button><Button asChild variant="outline" size="lg" className="w-full"><Link href="/account"><FiPackage /> Acessar minha biblioteca</Link></Button></div>
           ) : isApproved ? (
             <Button asChild variant="outline" size="lg" className="relative mt-8 w-full"><a href={`mailto:${siteConfig.contactEmail}`}><FiMail /> Falar com o suporte</a></Button>
           ) : isPixPending && !pix ? (

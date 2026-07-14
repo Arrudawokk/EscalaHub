@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Dashboard",
-  description: "Gestão de vendas, produtos e clientes da EscalaHub.",
+  description: "Acesso protegido à área do cliente EscalaHub.",
   alternates: { canonical: "/dashboard" },
   robots: { index: false, follow: false },
 };

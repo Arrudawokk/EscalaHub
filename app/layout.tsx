@@ -57,7 +57,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
   };
 
   return (
-    <html lang={siteConfig.language} className="dark">
+    <html lang={siteConfig.language} className="dark" data-scroll-behavior="smooth">
       <body>
         {children}
         <Analytics />
