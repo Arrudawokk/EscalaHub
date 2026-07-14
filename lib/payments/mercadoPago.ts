@@ -1,5 +1,5 @@
 import MercadoPagoConfig, { Payment, WebhookSignatureValidator } from "mercadopago";
-import { PaymentGatewayError, type PaymentGateway, type WebhookVerificationInput } from "./interfaces";
+import { InvalidWebhookRequestError, PaymentGatewayError, type PaymentGateway, type WebhookVerificationInput } from "./interfaces";
 import type { CreatePaymentInput, PaymentResult, WebhookNotification } from "./types";
 import { buildIdempotencyKey, mapMercadoPagoStatus } from "./utils";
 
@@ -49,15 +49,30 @@ export class MercadoPagoGateway implements PaymentGateway {
         requestOptions: { idempotencyKey: buildIdempotencyKey(input.externalReference) },
       });
 
-      return this.toPaymentResult(response);
+      const result = this.toPaymentResult(response);
+      if (
+        result.externalReference !== input.externalReference ||
+        result.method !== input.method ||
+        result.currency !== input.currency ||
+        Math.abs(result.amount - input.amount) >= 0.005 ||
+        (result.payerEmail && result.payerEmail.toLowerCase() !== input.payer.email.toLowerCase())
+      ) {
+        throw new PaymentGatewayError("O pagamento criado não corresponde ao pedido enviado.");
+      }
+      return result;
     } catch (error) {
       throw new PaymentGatewayError("Falha ao criar pagamento no Mercado Pago.", error);
     }
   }
 
   async getPayment(gatewayPaymentId: string): Promise<PaymentResult> {
+    const numericPaymentId = Number(gatewayPaymentId);
+    if (!/^\d{1,16}$/.test(gatewayPaymentId) || !Number.isSafeInteger(numericPaymentId) || numericPaymentId <= 0) {
+      throw new PaymentGatewayError("Identificador de pagamento inválido.");
+    }
+
     try {
-      const response = await this.client.get({ id: Number(gatewayPaymentId) });
+      const response = await this.client.get({ id: numericPaymentId });
       return this.toPaymentResult(response);
     } catch (error) {
       throw new PaymentGatewayError("Falha ao consultar pagamento no Mercado Pago.", error);
@@ -69,14 +84,22 @@ export class MercadoPagoGateway implements PaymentGateway {
     const topic = input.searchParams.get("type") ?? input.searchParams.get("topic");
 
     if (!dataId || (topic && topic !== "payment")) return null;
+    const numericDataId = Number(dataId);
+    if (!/^\d{1,16}$/.test(dataId) || !Number.isSafeInteger(numericDataId) || numericDataId <= 0) {
+      throw new InvalidWebhookRequestError("Identificador de pagamento inválido.");
+    }
 
-    WebhookSignatureValidator.validate({
-      xSignature: input.signatureHeader,
-      xRequestId: input.requestIdHeader,
-      dataId,
-      secret: this.webhookSecret,
-      toleranceSeconds: 300,
-    });
+    try {
+      WebhookSignatureValidator.validate({
+        xSignature: input.signatureHeader,
+        xRequestId: input.requestIdHeader,
+        dataId,
+        secret: this.webhookSecret,
+        toleranceSeconds: 300,
+      });
+    } catch (error) {
+      throw new InvalidWebhookRequestError(error instanceof Error ? error.message : "Assinatura inválida.");
+    }
 
     const result = await this.getPayment(dataId);
 
@@ -86,11 +109,19 @@ export class MercadoPagoGateway implements PaymentGateway {
       statusDetail: result.statusDetail,
       externalReference: result.externalReference,
       method: result.method,
+      amount: result.amount,
+      currency: result.currency,
+      payerEmail: result.payerEmail,
     };
   }
 
   private toPaymentResult(response: Awaited<ReturnType<Payment["get"]>>): PaymentResult {
     if (!response.id) throw new PaymentGatewayError("Resposta do Mercado Pago sem identificador de pagamento.");
+    if (!response.external_reference) throw new PaymentGatewayError("Resposta do Mercado Pago sem referência externa.");
+    if (typeof response.transaction_amount !== "number" || !Number.isFinite(response.transaction_amount)) {
+      throw new PaymentGatewayError("Resposta do Mercado Pago sem valor válido.");
+    }
+    if (!response.currency_id) throw new PaymentGatewayError("Resposta do Mercado Pago sem moeda.");
 
     const transactionData = response.point_of_interaction?.transaction_data;
     const isPix = response.payment_method_id === "pix";
@@ -100,7 +131,10 @@ export class MercadoPagoGateway implements PaymentGateway {
       status: mapMercadoPagoStatus(response.status),
       statusDetail: response.status_detail,
       method: isPix ? "pix" : "card",
-      externalReference: response.external_reference ?? "",
+      externalReference: response.external_reference,
+      amount: response.transaction_amount,
+      currency: response.currency_id,
+      payerEmail: response.payer?.email,
       pix:
         isPix && transactionData?.qr_code && transactionData?.qr_code_base64
           ? {

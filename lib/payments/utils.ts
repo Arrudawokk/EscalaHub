@@ -49,7 +49,8 @@ const statusMap: Record<string, PaymentStatus> = {
   in_process: "in_process",
   in_mediation: "in_process",
   approved: "approved",
-  authorized: "approved",
+  // Uma autorização ainda não representa captura/credito confirmado.
+  authorized: "in_process",
   rejected: "rejected",
   cancelled: "cancelled",
   refunded: "refunded",

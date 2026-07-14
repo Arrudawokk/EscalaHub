@@ -23,12 +23,12 @@ export type OrderRecord = {
  * API precisa mudar, pois todas dependem apenas de `OrderStore`.
  */
 export interface OrderStore {
-  create(record: OrderRecord): Promise<void>;
+  create(record: OrderRecord): Promise<boolean>;
   updateStatusByGatewayPaymentId(
     gatewayPaymentId: string,
     status: PaymentStatus,
   ): Promise<OrderRecord | null>;
-  attachGatewayPaymentId(externalReference: string, gatewayPaymentId: string, status: PaymentStatus): Promise<void>;
+  attachGatewayPaymentId(externalReference: string, gatewayPaymentId: string, status: PaymentStatus): Promise<OrderRecord | null>;
   getByExternalReference(externalReference: string): Promise<OrderRecord | null>;
   getByGatewayPaymentId(gatewayPaymentId: string): Promise<OrderRecord | null>;
 }
@@ -37,18 +37,23 @@ class InMemoryOrderStore implements OrderStore {
   private readonly ordersByReference = new Map<string, OrderRecord>();
   private readonly referenceByGatewayId = new Map<string, string>();
 
-  async create(record: OrderRecord): Promise<void> {
+  async create(record: OrderRecord): Promise<boolean> {
+    if (this.ordersByReference.has(record.externalReference)) return false;
     this.ordersByReference.set(record.externalReference, record);
     if (record.gatewayPaymentId) this.referenceByGatewayId.set(record.gatewayPaymentId, record.externalReference);
+    return true;
   }
 
-  async attachGatewayPaymentId(externalReference: string, gatewayPaymentId: string, status: PaymentStatus): Promise<void> {
+  async attachGatewayPaymentId(externalReference: string, gatewayPaymentId: string, status: PaymentStatus): Promise<OrderRecord | null> {
     const order = this.ordersByReference.get(externalReference);
-    if (!order) return;
+    if (!order || (order.gatewayPaymentId && order.gatewayPaymentId !== gatewayPaymentId)) return null;
+    const mappedReference = this.referenceByGatewayId.get(gatewayPaymentId);
+    if (mappedReference && mappedReference !== externalReference) return null;
     order.gatewayPaymentId = gatewayPaymentId;
-    order.status = status;
+    if (canTransition(order.status, status)) order.status = status;
     order.updatedAt = new Date().toISOString();
     this.referenceByGatewayId.set(gatewayPaymentId, externalReference);
+    return order;
   }
 
   async updateStatusByGatewayPaymentId(gatewayPaymentId: string, status: PaymentStatus): Promise<OrderRecord | null> {
@@ -56,8 +61,10 @@ class InMemoryOrderStore implements OrderStore {
     if (!externalReference) return null;
     const order = this.ordersByReference.get(externalReference);
     if (!order) return null;
-    order.status = status;
-    order.updatedAt = new Date().toISOString();
+    if (canTransition(order.status, status) && order.status !== status) {
+      order.status = status;
+      order.updatedAt = new Date().toISOString();
+    }
     return order;
   }
 
@@ -69,6 +76,13 @@ class InMemoryOrderStore implements OrderStore {
     const externalReference = this.referenceByGatewayId.get(gatewayPaymentId);
     return externalReference ? (this.ordersByReference.get(externalReference) ?? null) : null;
   }
+}
+
+function canTransition(current: PaymentStatus, next: PaymentStatus): boolean {
+  if (current === next) return true;
+  if (current === "approved") return next === "refunded" || next === "charged_back";
+  if (current === "rejected" || current === "cancelled" || current === "refunded" || current === "charged_back") return false;
+  return true;
 }
 
 const globalForOrderStore = globalThis as unknown as { __escalaHubOrderStore?: OrderStore };

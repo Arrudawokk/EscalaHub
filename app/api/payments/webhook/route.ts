@@ -1,46 +1,61 @@
 import { NextResponse } from "next/server";
 import { getPaymentGateway } from "@/lib/payments/gateway";
-import { getOrderStore } from "@/lib/payments/orderStore";
+import { InvalidWebhookRequestError, PaymentGatewayError } from "@/lib/payments/interfaces";
+import { getOrderStore, type OrderRecord } from "@/lib/payments/orderStore";
+import type { WebhookNotification } from "@/lib/payments/types";
 
 export const runtime = "nodejs";
 
+const NO_STORE_HEADERS = { "Cache-Control": "no-store, max-age=0" };
+
+function json(body: object, status: number, extraHeaders?: Record<string, string>) {
+  return NextResponse.json(body, { status, headers: { ...NO_STORE_HEADERS, ...extraHeaders } });
+}
+
+function matchesOrder(order: OrderRecord, notification: WebhookNotification): boolean {
+  return (
+    order.externalReference === notification.externalReference &&
+    (!order.gatewayPaymentId || order.gatewayPaymentId === notification.gatewayPaymentId) &&
+    order.method === notification.method &&
+    order.currency === notification.currency &&
+    Math.round(order.amount * 100) === Math.round(notification.amount * 100) &&
+    Boolean(notification.payerEmail) &&
+    order.payerEmail.toLowerCase() === notification.payerEmail?.toLowerCase()
+  );
+}
+
 /**
- * Recebe as notificações de pagamento do Mercado Pago.
- *
- * O corpo enviado pelo gateway nunca é utilizado como fonte de verdade: a
- * assinatura é validada e, em seguida, o pagamento é buscado novamente
- * diretamente na API do Mercado Pago antes de qualquer atualização de status.
+ * A assinatura e a janela temporal são validadas antes de o pagamento ser
+ * consultado novamente no gateway. O payload recebido nunca é fonte de verdade.
  */
 export async function POST(request: Request) {
   const searchParams = new URL(request.url).searchParams;
 
   try {
-    const gateway = getPaymentGateway();
-    const notification = await gateway.parseWebhook({
+    const notification = await getPaymentGateway().parseWebhook({
       signatureHeader: request.headers.get("x-signature"),
       requestIdHeader: request.headers.get("x-request-id"),
       searchParams,
     });
 
-    if (!notification) return NextResponse.json({ received: true }, { status: 200 });
+    if (!notification) return json({ received: true }, 200);
 
     const orderStore = getOrderStore();
-    const order = notification.externalReference
-      ? await orderStore.getByExternalReference(notification.externalReference)
-      : await orderStore.getByGatewayPaymentId(notification.gatewayPaymentId);
+    const order = await orderStore.getByExternalReference(notification.externalReference);
+    if (!order) return json({ received: true }, 200);
+    if (!matchesOrder(order, notification)) return json({ error: "Pagamento não corresponde ao pedido." }, 422);
 
-    if (!order) return NextResponse.json({ received: true }, { status: 200 });
+    const updated = order.gatewayPaymentId
+      ? await orderStore.updateStatusByGatewayPaymentId(notification.gatewayPaymentId, notification.status)
+      : await orderStore.attachGatewayPaymentId(order.externalReference, notification.gatewayPaymentId, notification.status);
 
-    if (!order.gatewayPaymentId) {
-      await orderStore.attachGatewayPaymentId(order.externalReference, notification.gatewayPaymentId, notification.status);
-    } else {
-      await orderStore.updateStatusByGatewayPaymentId(notification.gatewayPaymentId, notification.status);
+    if (!updated) return json({ error: "Não foi possível reconciliar o pagamento." }, 409);
+    return json({ received: true }, 200);
+  } catch (error) {
+    if (error instanceof InvalidWebhookRequestError) return json({ error: "Assinatura inválida." }, 401);
+    if (error instanceof PaymentGatewayError) {
+      return json({ error: "Gateway temporariamente indisponível." }, 503, { "Retry-After": "10" });
     }
-
-    return NextResponse.json({ received: true }, { status: 200 });
-  } catch {
-    // Assinatura ausente, malformada ou inválida — a requisição é rejeitada
-    // sem revelar detalhes internos.
-    return NextResponse.json({ error: "Assinatura inválida." }, { status: 401 });
+    return json({ error: "Não foi possível processar a notificação." }, 500);
   }
 }

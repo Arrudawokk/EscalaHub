@@ -64,6 +64,9 @@ export type PaymentResult = {
   statusDetail?: string;
   method: PaymentMethodType;
   externalReference: string;
+  amount: number;
+  currency: string;
+  payerEmail?: string;
   pix?: PixPaymentDetails;
 };
 
@@ -75,9 +78,9 @@ export type WebhookNotification = {
   gatewayPaymentId: string;
   status: PaymentStatus;
   statusDetail?: string;
-  externalReference?: string;
-  method?: PaymentMethodType;
-  amount?: number;
-  currency?: string;
+  externalReference: string;
+  method: PaymentMethodType;
+  amount: number;
+  currency: string;
   payerEmail?: string;
 };

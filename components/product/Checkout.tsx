@@ -41,6 +41,7 @@ export function Checkout({ product }: { product: Product }) {
   const [pixCopied, setPixCopied] = useState(false);
   const mercadoPagoRef = useRef<InstanceType<NonNullable<Window["MercadoPago"]>> | null>(null);
   const purchaseTrackedRef = useRef(false);
+  const idempotencyKeyRef = useRef<string | null>(null);
   const formattedPrice = formatProductPrice(product);
   const productHref = getProductPath(product);
   const trustSignals = [
@@ -63,7 +64,7 @@ export function Checkout({ product }: { product: Product }) {
     const interval = window.setInterval(async () => {
       attempts += 1;
       try {
-        const response = await fetch(`/api/payments/status?orderId=${orderId}`);
+        const response = await fetch(`/api/payments/status?orderId=${orderId}`, { cache: "no-store" });
         if (response.ok) {
           const data = (await response.json()) as { status: SubmissionStatus };
           setStatus(data.status);
@@ -142,18 +143,25 @@ export function Checkout({ product }: { product: Product }) {
 
       const response = await fetch("/api/payments/create", {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: {
+          "Content-Type": "application/json",
+          "X-Idempotency-Key": idempotencyKeyRef.current ?? (idempotencyKeyRef.current = crypto.randomUUID()),
+        },
         body: JSON.stringify({ productSlug: product.slug, method, payer, card: cardPayload }),
       });
 
-      const data = (await response.json()) as { orderId?: string; status?: SubmissionStatus; pix?: PixPaymentDetails; error?: string };
-      if (!response.ok || !data.orderId || !data.status) throw new Error(data.error || "Não foi possível concluir o pagamento.");
+      const data = (await response.json().catch(() => ({}))) as { orderId?: string; status?: SubmissionStatus; pix?: PixPaymentDetails; error?: string };
+      if (!response.ok || !data.orderId || !data.status) {
+        if (response.status >= 400 && response.status < 500) idempotencyKeyRef.current = null;
+        throw new Error(data.error || "Não foi possível concluir o pagamento.");
+      }
 
       setOrderId(data.orderId);
       setStatus(data.status);
       setPix(data.pix ?? null);
 
       if (data.status === "rejected" || data.status === "cancelled") {
+        idempotencyKeyRef.current = null;
         throw new Error("Pagamento não aprovado. Verifique os dados do cartão ou tente outra forma de pagamento.");
       }
 
@@ -176,27 +184,48 @@ export function Checkout({ product }: { product: Product }) {
       refunded: "Pagamento reembolsado",
       charged_back: "Pagamento contestado",
     };
+    const isApproved = status === "approved";
+    const isFailed = status === "rejected" || status === "cancelled" || status === "refunded" || status === "charged_back";
+    const isPixPending = method === "pix" && (status === "pending" || status === "in_process");
+    const statusColor = isFailed ? "text-red-300" : "text-[#b8ff5c]";
+
+    const resetPaymentAttempt = () => {
+      idempotencyKeyRef.current = null;
+      purchaseTrackedRef.current = false;
+      setComplete(false);
+      setOrderId(null);
+      setStatus("pending");
+      setPix(null);
+      setErrorMessage(null);
+    };
 
     return (
       <main className="noise grid min-h-screen place-items-center bg-[#070a10] px-5 py-16">
         <div className="relative w-full max-w-xl overflow-hidden rounded-[32px] border border-white/[.1] bg-[#0d1119] p-7 text-center shadow-[0_35px_110px_rgba(0,0,0,.42)] sm:p-10 md:p-12">
           <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[#b8ff5c]/10 blur-[90px]" />
-          <span className="relative mx-auto grid h-16 w-16 place-items-center rounded-full bg-[#b8ff5c] text-2xl text-black shadow-[0_16px_50px_rgba(184,255,92,.2)]"><FiCheck aria-hidden="true" /></span>
+          <span className={`relative mx-auto grid h-16 w-16 place-items-center rounded-full text-2xl shadow-[0_16px_50px_rgba(184,255,92,.2)] ${isFailed ? "bg-red-400 text-red-950" : "bg-[#b8ff5c] text-black"}`}>
+            {isFailed ? <FiAlertCircle aria-hidden="true" /> : isApproved ? <FiCheck aria-hidden="true" /> : <FiRefreshCw className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+          </span>
           <p className="eyebrow relative mt-8 justify-center">Próxima etapa</p>
-          <h1 className="display-title relative mt-4 text-4xl font-semibold text-white md:text-5xl">{method === "pix" && status !== "approved" ? "Pague com Pix." : "Confira seu e-mail."}</h1>
+          <h1 className="display-title relative mt-4 text-4xl font-semibold text-white md:text-5xl">
+            {isFailed ? "Pagamento não concluído." : isPixPending ? "Pague com Pix." : isApproved ? "Pagamento aprovado." : "Pagamento em análise."}
+          </h1>
           <p className="relative mx-auto mt-5 max-w-md leading-7 text-zinc-300">
-            {method === "pix" && status !== "approved" ? (
+            {isFailed ? (
+              "A cobrança não foi concluída. Você pode voltar ao checkout e tentar novamente com segurança."
+            ) : isPixPending ? (
               "Escaneie o QR Code ou copie o código abaixo no app do seu banco."
-            ) : (
+            ) : isApproved ? (
               <>Enviamos as instruções de confirmação da compra para <strong className="text-white">{email}</strong>.</>
+            ) : (
+              "A confirmação pode levar alguns minutos. Esta página será atualizada automaticamente."
             )}
           </p>
 
-          {method === "pix" && pix && status !== "approved" ? (
+          {isPixPending && pix ? (
             <div className="relative mt-8 flex flex-col items-center gap-4">
               <div className="rounded-2xl border border-white/[.1] bg-white p-3">
-                {/* eslint-disable-next-line @next/next/no-img-element -- imagem base64 dinâmica do gateway, não passa pelo otimizador */}
-                <img src={`data:image/png;base64,${pix.qrCodeBase64}`} alt="QR Code para pagamento via Pix" width={220} height={220} />
+                <Image unoptimized src={`data:image/png;base64,${pix.qrCodeBase64}`} alt="QR Code para pagamento via Pix" width={220} height={220} />
               </div>
               <Button type="button" variant="outline" size="md" onClick={copyPixCode} className="w-full">
                 <FiCopy /> {pixCopied ? "Código copiado!" : "Copiar código Pix"}
@@ -206,10 +235,14 @@ export function Checkout({ product }: { product: Product }) {
 
           <div className="relative mt-8 rounded-2xl border border-white/[.08] bg-white/[.035] p-5 text-left">
             <div className="flex justify-between text-sm"><span className="text-zinc-500">Total</span><strong className="text-white">{formattedPrice}</strong></div>
-            <div className="mt-3 flex justify-between text-sm"><span className="text-zinc-500">Status</span><span className="font-bold text-[#b8ff5c]">{statusLabel[status]}</span></div>
+            <div className="mt-3 flex justify-between text-sm"><span className="text-zinc-500">Status</span><span className={`font-bold ${statusColor}`}>{statusLabel[status]}</span></div>
           </div>
           <p className="relative mt-5 text-xs leading-5 text-zinc-500">O acesso ao produto digital é liberado após a confirmação do pagamento.</p>
-          <Button asChild size="lg" className="relative mt-8 w-full"><Link href="/">Voltar para a EscalaHub</Link></Button>
+          {isFailed ? (
+            <Button type="button" size="lg" className="relative mt-8 w-full" onClick={resetPaymentAttempt}>Tentar novamente</Button>
+          ) : (
+            <Button asChild size="lg" className="relative mt-8 w-full"><Link href="/">Voltar para a EscalaHub</Link></Button>
+          )}
         </div>
       </main>
     );
