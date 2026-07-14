@@ -2,9 +2,9 @@
 
 **Projeto:** EscalaHub
 
-**Versão atual:** v1.0 RC2
+**Versão atual:** v1.0 RC3
 
-**Status:** pronta para homologação final de produção
+**Status:** pronta para homologação de analytics e produção
 
 **Última atualização:** 13/07/2026
 
@@ -36,6 +36,12 @@ Construir uma plataforma própria, segura e escalável de venda de produtos digi
 - Download protegido por HMAC, expiração curta, validação do pedido e proxy de origem privada.
 - Retomada do pedido no navegador sem persistir e-mail, CPF ou dados de cartão.
 - Evento `Purchase` ligado somente a pedido aprovado, com identificador estável para deduplicação.
+- Camada centralizada de analytics para GA4, Meta Pixel e Google Tag Manager.
+- Eventos `page_view`, `view_item`, `begin_checkout` e `purchase` padronizados no Data Layer.
+- Meta Pixel com `currency`, `value`, `content_ids`, `content_type` e `eventID` em todos os eventos relevantes.
+- UTMs, `gclid` e `fbclid` preservados durante a sessão e associados aos eventos até a confirmação da compra.
+- Fila segura para eventos do Meta Pixel disparados antes do carregamento do script.
+- Eventos `Search` e `Lead` preparados sem gerar conversões artificiais em fluxos que ainda não os confirmam.
 
 ## Ativação operacional obrigatória
 
@@ -47,6 +53,8 @@ Antes de aceitar vendas reais no domínio final:
 4. Gerar `DELIVERY_TOKEN_SECRET` com no mínimo 32 caracteres aleatórios.
 5. Homologar Pix, cartão aprovado/recusado, webhook, reenvio, reembolso, chargeback e download no ambiente de teste do Mercado Pago.
 6. Configurar consentimento e revisar juridicamente a ativação de tags de marketing.
+7. Escolher uma única rota de envio ao GA4: integração direta ou tags do GTM, nunca ambas para a mesma propriedade.
+8. Validar todos os eventos no Meta Test Events, GA4 DebugView e modo Preview do GTM no domínio definitivo.
 
 ## Prioridades P0 restantes da aplicação
 
@@ -81,4 +89,13 @@ Antes de aceitar vendas reais no domínio final:
 - Rotas negativas de status, download, webhook e origem do checkout: validadas.
 - Checkout revisado em mobile e desktop sem overflow de conteúdo.
 
-Consulte `docs/RC2_REPORT.md` e `docs/MERCADO_PAGO.md` para o fluxo completo, os controles de segurança e os riscos operacionais restantes.
+## Qualidade da RC3
+
+- Eventos iniciais e de navegação centralizados, sem disparo automático duplicado dos scripts de terceiros.
+- `Purchase` permanece bloqueado para pedidos pendentes, recusados, cancelados, reembolsados ou contestados.
+- Data Layer disponível mesmo quando o GTM ainda não terminou de carregar.
+- Falhas de scripts e integrações são isoladas e registradas como `analytics_error`, sem interromper a aplicação.
+- SEO técnico, imagens, fontes, hidratação e fronteiras entre Server e Client Components revisados sem regressões.
+- `npm install`, `npm run lint`, `npm run type-check` e `npm run build`: aprovados na RC3.
+
+Consulte `docs/RC3_ANALYTICS.md`, `docs/RC3_REPORT.md`, `docs/RC2_REPORT.md` e `docs/MERCADO_PAGO.md` para a configuração, o fluxo completo e os riscos operacionais restantes.
