@@ -36,7 +36,7 @@ Não conecte o mesmo repositório a projetos Vercel duplicados. Em 14/07/2026 fo
 
 Obrigatórias em produção:
 
-- `NEXT_PUBLIC_SITE_URL`: URL canônica, com HTTPS e sem barra final.
+- `NEXT_PUBLIC_SITE_URL`: URL canônica, com HTTPS e sem barra final. Se estiver vazia na Vercel, `VERCEL_PROJECT_PRODUCTION_URL` é utilizada automaticamente; configure explicitamente ao conectar o domínio definitivo.
 - `NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY`: chave pública usada pelo Mercado Pago.js no navegador.
 - `MERCADO_PAGO_ACCESS_TOKEN`: credencial privada usada somente no servidor.
 - `MERCADO_PAGO_WEBHOOK_SECRET`: segredo privado para validar notificações.

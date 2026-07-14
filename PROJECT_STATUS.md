@@ -2,9 +2,9 @@
 
 **Projeto:** EscalaHub
 
-**Versão atual:** v1.0 RC4
+**Versão atual:** v1.0 RC5
 
-**Status:** RC4 promovida para `main` e publicada em produção
+**Status:** RC5 validada localmente e preparada para publicação em produção
 
 **Última atualização:** 14/07/2026
 
@@ -67,15 +67,18 @@ Antes de aceitar vendas reais no domínio final:
 
 ## Produção
 
-- Branch oficial: `main`, atualizada por fast-forward com toda a sequência RC1–RC4.
+- Branch oficial: `main`, com toda a sequência RC1–RC5.
 - URL operacional validada: `https://teste-site-qnxk.vercel.app`.
 - Home, produto, checkout, blog e conta respondem HTTP 200.
+- A URL canônica e o callback do Mercado Pago utilizam `NEXT_PUBLIC_SITE_URL` quando configurada e, na Vercel, recorrem automaticamente a `VERCEL_PROJECT_PRODUCTION_URL`.
 - O repositório possui dois projetos Vercel conectados. `teste-site-qnxk` é o projeto operacional; `teste-site` deve ser revisado e removido somente depois de confirmar domínios e variáveis no painel.
 - O endereço `teste-site.vercel.app` não está atribuído ao deploy operacional e não deve ser divulgado.
 
 ## Prioridades P0 restantes da aplicação
 
 - Executar a homologação operacional acima no domínio definitivo.
+- Preencher e validar as variáveis públicas do Mercado Pago e de analytics na Vercel; a auditoria externa da RC5 não encontrou os respectivos scripts ativos no HTML publicado antes do deploy.
+- Apontar o domínio final para este projeto antes de iniciar campanhas. `escalahub.com` ainda publica outra aplicação.
 - Validar backup, restauração e alertas do banco de produção.
 - Consolidar os dois projetos Vercel em um único projeto, preservando variáveis e domínios do projeto operacional.
 
@@ -123,4 +126,15 @@ Antes de aceitar vendas reais no domínio final:
 - Migração aditiva preserva os pedidos existentes e adiciona contas e sessões sem alterar o fluxo do gateway.
 - Validação final registrada em `docs/RC4_REPORT.md`.
 
-Consulte `docs/ACCOUNT.md`, `docs/RC4_REPORT.md`, `docs/RC3_ANALYTICS.md`, `docs/RC3_REPORT.md`, `docs/RC2_REPORT.md` e `docs/MERCADO_PAGO.md` para a configuração, os fluxos completos e os riscos operacionais restantes.
+## Qualidade da RC5
+
+- Landing Page revisada para clareza de oferta, confiança e copy responsável, sem avaliações ou urgência artificiais.
+- FAQ da Home passou a consumir o catálogo, eliminando duplicação de conteúdo.
+- Hidratação global reduzida com a remoção do Framer Motion do template raiz e do menu do Header; microinteração mobile preservada em CSS.
+- Checkout agora diferencia SDK de cartão carregando, pronto, indisponível ou com falha e mantém Pix disponível como alternativa.
+- Validação de cartão e dados do comprador reforçada antes da tokenização, sem enviar PAN ou CVV ao servidor.
+- Canonical, Open Graph, robots, sitemap e callback do webhook validados com a URL operacional da Vercel.
+- `npm install`, `npm run lint`, `npm run type-check` e `npm run build`: aprovados; 33 rotas geradas e nenhuma vulnerabilidade reportada pelo npm.
+- Detalhes e pendências operacionais registrados em `docs/RC5_REPORT.md`.
+
+Consulte `docs/RC5_REPORT.md`, `RELEASE_NOTES.md`, `docs/ACCOUNT.md`, `docs/RC4_REPORT.md`, `docs/RC3_ANALYTICS.md`, `docs/RC3_REPORT.md`, `docs/RC2_REPORT.md` e `docs/MERCADO_PAGO.md` para a configuração, os fluxos completos e os riscos operacionais restantes.
