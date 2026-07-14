@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { getProductBySlug } from "@/lib/catalog";
 import { getDeliverySource, verifyDeliveryToken } from "@/lib/payments/delivery";
 import { getOrderStore, OrderStoreUnavailableError } from "@/lib/payments/orderStore";
+import { streamPrivateAsset } from "@/lib/storage/privateAssets";
 
 export const runtime = "nodejs";
 
@@ -10,10 +11,6 @@ const NO_STORE_HEADERS = { "Cache-Control": "private, no-store, max-age=0", "X-C
 
 function json(body: object, status: number) {
   return NextResponse.json(body, { status, headers: NO_STORE_HEADERS });
-}
-
-function safeFileName(fileName: string): string {
-  return fileName.replace(/[^a-zA-Z0-9._-]/g, "-");
 }
 
 export async function GET(request: Request) {
@@ -32,23 +29,7 @@ export async function GET(request: Request) {
     const source = product ? getDeliverySource(product) : null;
     if (!source) return json({ error: "Arquivo temporariamente indisponível." }, 503);
 
-    const upstream = await fetch(source.url, {
-      cache: "no-store",
-      headers: source.authorization ? { Authorization: source.authorization } : undefined,
-      redirect: "error",
-      signal: AbortSignal.timeout(12_000),
-    });
-    if (!upstream.ok || !upstream.body) return json({ error: "Arquivo temporariamente indisponível." }, 502);
-
-    const headers = new Headers({
-      ...NO_STORE_HEADERS,
-      "Content-Type": source.contentType,
-      "Content-Disposition": `attachment; filename="${safeFileName(source.fileName)}"; filename*=UTF-8''${encodeURIComponent(source.fileName)}`,
-      "Content-Security-Policy": "sandbox",
-    });
-    const contentLength = upstream.headers.get("content-length");
-    if (contentLength && /^\d+$/.test(contentLength)) headers.set("Content-Length", contentLength);
-    return new Response(upstream.body, { status: 200, headers });
+    return (await streamPrivateAsset(source)) ?? json({ error: "Arquivo temporariamente indisponível." }, 502);
   } catch (error) {
     if (error instanceof OrderStoreUnavailableError) return json({ error: "Entrega temporariamente indisponível." }, 503);
     return json({ error: "Não foi possível entregar o arquivo." }, 502);

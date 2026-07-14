@@ -1,17 +1,11 @@
 import { createHmac, timingSafeEqual } from "node:crypto";
 import { getProductBySlug, type Product } from "@/lib/catalog";
+import { getPrivateAssetStore, type PrivateAsset } from "@/lib/storage/privateAssets";
 import type { DeliveryDetails } from "./types";
 import type { OrderRecord } from "./orderStore";
 
 const DOWNLOAD_TOKEN_TTL_SECONDS = 15 * 60;
 const MINIMUM_SECRET_LENGTH = 32;
-
-type DeliverySource = {
-  url: URL;
-  authorization?: string;
-  fileName: string;
-  contentType: Product["delivery"]["contentType"];
-};
 
 function getDeliverySecret(): string | null {
   const secret = process.env.DELIVERY_TOKEN_SECRET?.trim();
@@ -26,25 +20,8 @@ function createSignature(orderId: string, productSlug: string, expiresAt: number
   return createHmac("sha256", secret).update(signaturePayload(orderId, productSlug, expiresAt)).digest("hex");
 }
 
-export function getDeliverySource(product: Product): DeliverySource | null {
-  const configuredUrl = process.env[product.delivery.sourceUrlEnvironmentVariable]?.trim();
-  if (!configuredUrl) return null;
-
-  try {
-    const url = new URL(configuredUrl);
-    const localDevelopment = process.env.NODE_ENV === "development" && ["localhost", "127.0.0.1"].includes(url.hostname);
-    if (url.protocol !== "https:" && !localDevelopment) return null;
-    const authorizationVariable = product.delivery.sourceAuthorizationEnvironmentVariable;
-    const authorization = authorizationVariable ? process.env[authorizationVariable]?.trim() : undefined;
-    return {
-      url,
-      authorization: authorization || undefined,
-      fileName: product.delivery.fileName,
-      contentType: product.delivery.contentType,
-    };
-  } catch {
-    return null;
-  }
+export function getDeliverySource(product: Product): PrivateAsset | null {
+  return getPrivateAssetStore().resolve(product.delivery);
 }
 
 export function getDeliveryDetails(order: OrderRecord): DeliveryDetails {
