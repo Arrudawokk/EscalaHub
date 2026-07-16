@@ -37,9 +37,10 @@ Não conecte o mesmo repositório a projetos Vercel duplicados. Em 14/07/2026 fo
 Obrigatórias em produção:
 
 - `NEXT_PUBLIC_SITE_URL`: URL canônica, com HTTPS e sem barra final. Se estiver vazia na Vercel, `VERCEL_PROJECT_PRODUCTION_URL` é utilizada automaticamente; configure explicitamente ao conectar o domínio definitivo.
-- `NEXT_PUBLIC_MERCADO_PAGO_PUBLIC_KEY`: chave pública usada pelo Mercado Pago.js no navegador.
-- `MERCADO_PAGO_ACCESS_TOKEN`: credencial privada usada somente no servidor.
-- `MERCADO_PAGO_WEBHOOK_SECRET`: segredo privado para validar notificações.
+- `NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY`: chave pública da Stripe, no mesmo modo da chave secreta.
+- `STRIPE_SECRET_KEY`: chave privada da Stripe, usada somente no servidor.
+- `STRIPE_WEBHOOK_SECRET`: segredo de assinatura do endpoint de webhook.
+- `PRICE_ID`: identificador do preço único em BRL configurado para o produto.
 - `DATABASE_URL`: conexão PostgreSQL com pooler para persistência transacional.
 - `DELIVERY_TOKEN_SECRET`: segredo aleatório com pelo menos 32 caracteres.
 - `PRODUCT_TRAFEGO_DOWNLOAD_URL`: origem HTTPS privada do arquivo digital.
@@ -56,7 +57,7 @@ Opcionais, apenas com IDs reais:
 
 Use `.env.example` como referência. A ausência de um ID mantém a integração correspondente desativada.
 
-As três credenciais do Mercado Pago devem pertencer ao mesmo ambiente. O checkout recusa criar cobranças quando a URL pública não está configurada com HTTPS.
+As credenciais e o Price da Stripe devem pertencer ao mesmo modo. O checkout recusa criar sessões sem URL pública HTTPS ou configuração completa e consistente.
 
 ## Banco e entrega
 
@@ -65,6 +66,7 @@ Antes do primeiro deploy que aceite pagamentos, execute as migrações em ordem 
 ```bash
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/001_payment_orders.sql
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/002_customer_accounts.sql
+psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/003_stripe_gateway.sql
 ```
 
 Nunca coloque o produto digital em `public/`. Configure uma origem HTTPS privada; a aplicação transmite o arquivo somente depois de validar pedido, aprovação e link temporário.

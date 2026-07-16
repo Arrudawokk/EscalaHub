@@ -83,7 +83,7 @@ lib/payments/
 
 gateway.ts
 
-mercadoPago.ts
+stripe.ts
 
 types.ts
 
@@ -93,9 +93,9 @@ utils.ts
 
 orderStore.ts
 
-O restante da aplicação nunca conversa diretamente com o Mercado Pago — apenas com `getPaymentGateway()` em `gateway.ts`.
+O restante da aplicação nunca conversa diretamente com a Stripe — apenas com `getPaymentGateway()` em `gateway.ts`.
 
-Isso permite adicionar Stripe futuramente sem alterar a interface. Ver `docs/MERCADO_PAGO.md` para detalhes do fluxo, segurança e limitações conhecidas.
+O adaptador cria Stripe Checkout Sessions, valida preço e moeda e transforma eventos assinados no vocabulário interno. Pedidos históricos preservam o identificador do gateway anterior. Ver `docs/STRIPE.md` para configuração, segurança e homologação.
 
 ---
 

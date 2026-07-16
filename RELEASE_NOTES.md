@@ -14,7 +14,7 @@ A versão 1.0.0 consolida a EscalaHub como uma plataforma de catálogo, venda, c
 
 - Landing Page, página de produto e checkout responsivos e orientados à clareza da oferta.
 - Catálogo tipado e reutilizável para múltiplos produtos.
-- Checkout próprio com Pix e cartão tokenizado pelo Mercado Pago.js.
+- Pré-checkout próprio e pagamento hospedado pela Stripe com cartão e Pix.
 - Validação server-side do catálogo e do valor, idempotência e reconciliação autoritativa.
 - Webhook assinado, janela antirreplay, deduplicação persistente e transições protegidas.
 - PostgreSQL para pedidos, acessos, contas e sessões.

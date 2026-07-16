@@ -279,11 +279,11 @@ O projeto deve ser preparado para suportar múltiplos gateways.
 
 Exemplo:
 
-Mercado Pago
-
 Stripe
 
 Asaas
+
+Mercado Pago (apenas pedidos históricos)
 
 A interface nunca deve depender do gateway.
 

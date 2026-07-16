@@ -7,7 +7,7 @@ Todas as alterações relevantes da EscalaHub são registradas neste arquivo.
 ### Adicionado
 
 - Catálogo tipado de produtos e rotas dinâmicas de produto.
-- Checkout Mercado Pago com Pix e cartão, idempotência e tratamento completo de estados.
+- Stripe Checkout com cartão e Pix, preço validado, idempotência e tratamento completo de estados.
 - Persistência PostgreSQL de pedidos, eventos de webhook, contas e sessões.
 - Webhook assinado, antirreplay, deduplicado e reconciliado com a API do gateway.
 - Entrega protegida, biblioteca, histórico de pedidos e área do cliente.

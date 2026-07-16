@@ -10,7 +10,7 @@
 
 **Código V1: aprovado.** A aplicação compila, possui rotas públicas funcionais, tratamento de erros, pagamento desacoplado, webhook protegido, entrega autorizada, analytics preparado e SEO técnico completo.
 
-**Lançamento comercial e tráfego pago: ainda não aprovado.** O ambiente publicado não carrega Mercado Pago.js, GA4, GTM ou Meta Pixel, o domínio final não aponta para este projeto e o fluxo financeiro não foi homologado com credenciais reais durante esta auditoria. A liberação depende integralmente do checklist P0 abaixo.
+**Lançamento comercial e tráfego pago: ainda não aprovado.** A Stripe ainda não possui Signing secret configurado e homologação no deploy; GA4, GTM e Meta Pixel também dependem de IDs reais, e o domínio final não aponta para este projeto. A liberação depende integralmente do checklist P0 abaixo.
 
 ## Escopo revisado
 
@@ -59,10 +59,10 @@
 ## Fluxo de compra auditado
 
 1. O produto e o preço são obtidos do catálogo no servidor.
-2. Cartão é tokenizado no navegador; PAN e CVV não passam pelo backend da EscalaHub.
+2. Dados financeiros são coletados exclusivamente na página hospedada da Stripe; PAN e CVV não passam pela EscalaHub.
 3. O pedido usa UUID e chave de idempotência; o PostgreSQL recusa duplicidade.
-4. O gateway opera por `PaymentGateway`, com timeout de oito segundos e mensagens controladas.
-5. O webhook exige assinatura, request ID, tolerância de 300 segundos e consulta autoritativa do pagamento.
+4. O gateway opera por `PaymentGateway`, com timeout de oito segundos, retries controlados e preço validado na Stripe.
+5. O webhook valida o corpo bruto e `Stripe-Signature`, aplica tolerância de 300 segundos e consulta autoritativa da sessão.
 6. Valor, moeda, método, referência, identificador e e-mail são reconciliados antes da transição.
 7. Eventos repetidos são deduplicados de forma persistente.
 8. Apenas `approved` concede acesso; reembolso ou chargeback revoga.
@@ -84,12 +84,12 @@
 
 ### Pagamento e entrega
 
-- [ ] Aplicar `001_payment_orders.sql` e `002_customer_accounts.sql` no banco de produção.
+- [ ] Aplicar as migrações `001`, `002` e `003` no banco de produção.
 - [ ] Configurar e validar `DATABASE_URL` com pooler.
-- [ ] Configurar as três credenciais reais do Mercado Pago no mesmo ambiente.
+- [ ] Rotacionar a Secret Key compartilhada durante a migração e configurar as quatro variáveis Stripe no mesmo modo.
 - [ ] Configurar `DELIVERY_TOKEN_SECRET` com no mínimo 32 caracteres aleatórios.
 - [ ] Configurar URL HTTPS privada do produto e autorização, quando necessária.
-- [ ] Homologar Pix e cartão aprovado/recusado no sandbox.
+- [ ] Homologar Pix e cartão aprovado/recusado no modo de teste da Stripe.
 - [ ] Homologar webhook, reenvio, idempotência, atraso, reembolso e chargeback.
 - [ ] Confirmar entrega imediata, recuperação da conta, biblioteca e download.
 - [ ] Executar uma compra controlada em produção e estornar conforme o procedimento.

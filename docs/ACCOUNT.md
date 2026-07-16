@@ -25,7 +25,7 @@ O histórico expõe somente informações próprias e não sensíveis: identific
 
 ## Entrega e downloads
 
-O webhook e a reconciliação do Mercado Pago continuam atualizando pagamento e acesso na mesma transação. A área do cliente não concede direitos; ela apenas lê essa decisão.
+O webhook e a reconciliação da Stripe atualizam pagamento e acesso na mesma transação. A área do cliente não concede direitos; ela apenas lê essa decisão.
 
 O download autenticado executa, a cada solicitação:
 
