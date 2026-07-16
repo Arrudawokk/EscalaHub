@@ -9,7 +9,7 @@ A área do cliente usa o catálogo existente como fonte dos dados de produto e o
 - `lib/account/data.ts`: camada server-side que produz DTOs seguros para biblioteca, pedidos e perfil.
 - `app/account`: visão geral, biblioteca, pedidos, perfil, login, loading e tratamento de erro.
 - `app/api/account/download`: download autenticado e autorizado.
-- `lib/storage/privateAssets.ts`: contrato de armazenamento privado e adaptador HTTP atual.
+- `lib/storage/privateAssets.ts`: contrato de armazenamento privado e provider Cloudflare R2.
 
 ## Autenticação
 
@@ -34,9 +34,10 @@ O download autenticado executa, a cada solicitação:
 3. comparação do titular pelo e-mail normalizado;
 4. confirmação de pagamento aprovado e acesso concedido;
 5. resolução do arquivo pelo adaptador privado;
-6. streaming com `no-store`, `nosniff` e nome de arquivo seguro.
+6. verificação da existência do objeto e geração de URL `GetObject` assinada por cinco minutos;
+7. redirect temporário com `no-store`, `no-referrer` e download como attachment.
 
-O arquivo nunca é colocado em `public`. O adaptador atual usa as variáveis de origem privada já existentes. Vercel Blob, Amazon S3 e Cloudflare R2 podem ser adicionados implementando `PrivateAssetStore`, sem mudar as rotas ou a biblioteca.
+O arquivo nunca é colocado em `public`. A implementação ativa utiliza Cloudflare R2 privado. A aplicação continua dependendo somente de `PrivateAssetStore`, portanto outro provider pode substituí-lo sem mudar as rotas ou a biblioteca.
 
 ## Banco de dados
 

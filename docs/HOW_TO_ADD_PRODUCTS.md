@@ -15,7 +15,7 @@ Campos obrigatórios:
 - mídia: `coverImage`, `gallery`;
 - organização: `category`, `author`;
 - conteúdo: `benefits`, `learning`, `modules`, `audience`, `faq`, `testimonials`;
-- entrega: `format`, `accessLabel`, `guaranteeDays`, `platforms`;
+- entrega: `format`, `accessLabel`, `guaranteeDays`, `platforms`, `delivery.objectKey`, `delivery.fileName`, `delivery.contentType`;
 - descoberta: `seo.title`, `seo.description`, `seo.keywords`, imagens sociais opcionais.
 
 Use no checkout interno:
@@ -25,6 +25,8 @@ checkoutUrl: "/checkout?product=meu-novo-produto"
 ```
 
 Use `status: "draft"` enquanto prepara o conteúdo e `status: "published"` para publicar.
+
+Envie o arquivo privado ao R2 em `products/{slug}/{arquivo}` e use a mesma chave em `delivery.objectKey`. Não coloque o produto digital em `public/`.
 
 ## 3. Escolha uma categoria
 
@@ -54,3 +56,4 @@ Depois do build, a rota `/products/meu-novo-produto`, a metadata, o schema, o si
 - SEO exclusivo;
 - `featured` usado apenas nos produtos prioritários;
 - `published` somente quando todo o conteúdo estiver revisado.
+- objeto privado existente no R2 e chave idêntica em `delivery.objectKey`.

@@ -43,11 +43,14 @@ Obrigatórias em produção:
 - `PRICE_ID`: identificador do preço único em BRL configurado para o produto.
 - `DATABASE_URL`: conexão PostgreSQL com pooler para persistência transacional.
 - `DELIVERY_TOKEN_SECRET`: segredo aleatório com pelo menos 32 caracteres.
-- `PRODUCT_TRAFEGO_DOWNLOAD_URL`: origem HTTPS privada do arquivo digital.
+- `R2_ACCOUNT_ID`: identificador da conta Cloudflare.
+- `R2_ACCESS_KEY_ID`: identificador da credencial S3 com leitura no bucket.
+- `R2_SECRET_ACCESS_KEY`: segredo privado da credencial S3.
+- `R2_BUCKET`: nome do bucket privado de produtos.
 
-Opcional para origens privadas que exigem header:
+Opcional:
 
-- `PRODUCT_TRAFEGO_DOWNLOAD_AUTHORIZATION`: valor completo do header `Authorization`.
+- `R2_PUBLIC_URL`: URL de ativos públicos; nunca é usada na entrega de produtos privados.
 
 Opcionais, apenas com IDs reais:
 
@@ -69,7 +72,7 @@ psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/002_customer_accounts.s
 psql "$DATABASE_URL" -v ON_ERROR_STOP=1 -f db/migrations/003_stripe_gateway.sql
 ```
 
-Nunca coloque o produto digital em `public/`. Configure uma origem HTTPS privada; a aplicação transmite o arquivo somente depois de validar pedido, aprovação e link temporário.
+Nunca coloque o produto digital em `public/`. Envie-o ao R2 privado usando a estrutura descrita em `docs/STORAGE.md`; a aplicação só emite uma URL de cinco minutos após validar pedido, aprovação e acesso.
 
 ## Analytics e Pixel
 

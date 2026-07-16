@@ -19,6 +19,7 @@ A versão 1.0.0 consolida a EscalaHub como uma plataforma de catálogo, venda, c
 - Webhook assinado, janela antirreplay, deduplicação persistente e transições protegidas.
 - PostgreSQL para pedidos, acessos, contas e sessões.
 - Entrega automática para pedido aprovado e download por rota protegida.
+- Cloudflare R2 privado com verificação de objeto e URLs de download assinadas por cinco minutos.
 - Área autenticada com biblioteca, pedidos e perfil preparado.
 - Analytics centralizado para GA4, GTM e Meta Pixel, com UTMs e deduplicação de `Purchase`.
 - SEO completo com metadata, canonical, Open Graph, Twitter Cards, JSON-LD, robots, sitemap, favicon e manifest.

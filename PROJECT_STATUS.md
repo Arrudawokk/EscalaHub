@@ -6,7 +6,7 @@
 
 **Status:** código V1 aprovado e publicado; lançamento comercial condicionado ao checklist operacional
 
-**Última atualização:** 15/07/2026
+**Última atualização:** 16/07/2026
 
 ## Objetivo
 
@@ -19,6 +19,7 @@ Construir uma plataforma própria, segura e escalável de venda de produtos digi
 - Tailwind CSS e Framer Motion
 - Stripe Checkout
 - PostgreSQL
+- Cloudflare R2 privado
 
 ## Funcionalidades concluídas
 
@@ -46,8 +47,8 @@ Construir uma plataforma própria, segura e escalável de venda de produtos digi
 - Biblioteca automática baseada nas compras aprovadas do catálogo, sem conteúdo hardcoded.
 - Histórico de pedidos com produto, valor, status, data, gateway e forma de pagamento.
 - Perfil preparado para nome, e-mail, foto e configurações futuras.
-- Download autenticado que revalida sessão, titularidade, pagamento e acesso antes de buscar o arquivo privado.
-- Abstração de arquivos privados preparada para adaptadores de Vercel Blob, S3 ou Cloudflare R2.
+- Download autenticado que revalida sessão, titularidade, pagamento e acesso antes de emitir uma URL temporária.
+- Provider Cloudflare R2 desacoplado por `PrivateAssetStore`, com `HeadObject`, `GetObject` assinado por cinco minutos e resposta 404 para objeto ausente.
 - Camada de e-mails transacionais desacoplada do provedor com templates de aprovação, pendência, reembolso e entrega.
 - Estados vazios, loading, erro e recuperação de acesso pelo código do pedido aprovado.
 
@@ -57,7 +58,7 @@ Antes de aceitar vendas reais no domínio final:
 
 1. Provisionar PostgreSQL com pooler e executar, em ordem, as migrações `001`, `002` e `003` em `db/migrations/`.
 2. Rotacionar a Secret Key compartilhada durante a migração e configurar as quatro variáveis reais da Stripe.
-3. Armazenar o produto em origem privada e configurar as variáveis de entrega descritas em `.env.example`.
+3. Criar o bucket R2 privado, enviar o produto na chave do catálogo e configurar as quatro credenciais descritas em `.env.example`.
 4. Gerar `DELIVERY_TOKEN_SECRET` com no mínimo 32 caracteres aleatórios.
 5. Homologar Pix, cartão aprovado/recusado, webhook, reenvio, reembolso, disputa e download no modo de teste da Stripe.
 6. Configurar consentimento e revisar juridicamente a ativação de tags de marketing.
@@ -77,7 +78,7 @@ Antes de aceitar vendas reais no domínio final:
 ## Prioridades P0 restantes da aplicação
 
 - Executar a homologação operacional acima no domínio definitivo.
-- Configurar Stripe, banco, entrega e analytics na Vercel; o Signing secret do webhook ainda não foi fornecido.
+- Configurar Stripe, banco, R2 e analytics na Vercel; credenciais reais da Stripe e do R2 ainda não foram fornecidas.
 - Apontar o domínio final para este projeto antes de iniciar campanhas. `escalahub.com` ainda publica outra aplicação.
 - Validar backup, restauração e alertas do banco de produção.
 - Consolidar os dois projetos Vercel em um único projeto, preservando variáveis e domínios do projeto operacional.
@@ -87,7 +88,7 @@ Antes de aceitar vendas reais no domínio final:
 - Pacote marcado como `1.0.0` em `package.json` e no lockfile.
 - Sitemap deixou de atribuir uma data de alteração artificial a páginas estáticas em todo deploy; datas reais dos artigos foram preservadas.
 - Template raiz sem comportamento removido para evitar remontagens desnecessárias entre rotas.
-- `npm install`: 367 pacotes auditados e nenhuma vulnerabilidade reportada.
+- `npm install`: 393 pacotes auditados e nenhuma vulnerabilidade reportada.
 - `npm run lint`, `npm run type-check` e `npm run build`: aprovados com Next.js 16.2.10 e 33 rotas.
 - Home, produto, checkout, conteúdo, institucionais, conta, robots, sitemap e manifest: HTTP 200 no deploy operacional.
 - Rota inexistente: HTTP 404 com fallback próprio.
@@ -111,6 +112,7 @@ Antes de aceitar vendas reais no domínio final:
 
 - A aplicação continua desacoplada da Stripe por `PaymentGateway`; pedidos históricos preservam o gateway original.
 - O armazenamento continua desacoplado por `OrderStore`.
+- Arquivos privados continuam desacoplados por `PrivateAssetStore`; apenas o provider conhece a API S3 do R2.
 - Em desenvolvimento sem `DATABASE_URL`, existe fallback em memória; em produção, a aplicação falha de forma segura e recusa o checkout sem banco.
 - O arquivo digital nunca fica em `public/`; a rota de entrega valida o acesso antes de buscar a origem privada.
 - Dados de cartão nunca passam pelo servidor da EscalaHub.
@@ -153,4 +155,4 @@ Antes de aceitar vendas reais no domínio final:
 - `npm install`, `npm run lint`, `npm run type-check` e `npm run build`: aprovados; 33 rotas geradas e nenhuma vulnerabilidade reportada pelo npm.
 - Detalhes e pendências operacionais registrados em `docs/RC5_REPORT.md`.
 
-Consulte `docs/STRIPE.md`, `docs/STRIPE_REPORT.md`, `RELEASE_NOTES.md`, `docs/ACCOUNT.md` e `docs/RC3_ANALYTICS.md` para configuração, fluxos e riscos operacionais atuais. Os relatórios RC anteriores permanecem como histórico do estado auditado na época.
+Consulte `docs/STRIPE.md`, `docs/STORAGE.md`, `docs/R2.md`, `RELEASE_NOTES.md`, `docs/ACCOUNT.md` e `docs/RC3_ANALYTICS.md` para configuração, fluxos e riscos operacionais atuais. Os relatórios RC anteriores permanecem como histórico do estado auditado na época.

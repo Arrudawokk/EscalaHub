@@ -8,7 +8,7 @@ Estas limitações não são erros de compilação; são dependências operacion
 2. **Analytics público inativo.** O HTML publicado não contém GA4, GTM nem Meta Pixel. Configurar IDs reais e validar os eventos nas ferramentas oficiais.
 3. **Domínio definitivo não conectado.** A URL operacional é `teste-site-qnxk.vercel.app`; `escalahub.com` ainda publica outra aplicação. Canonical e webhook só devem apontar para o domínio final depois do DNS correto.
 4. **Homologação transacional externa pendente.** Não foi criada uma cobrança real durante esta migração. Pix, cartão aprovado/recusado, webhook, retry, reembolso, disputa e entrega precisam ser testados no modo test e depois por uma compra controlada em produção.
-5. **Persistência e arquivo privado não verificáveis externamente.** Aplicar as três migrações, testar backup/restauração e configurar a origem privada do PDF antes da primeira venda.
+5. **Persistência e R2 não verificáveis externamente.** Aplicar as três migrações, testar backup/restauração, configurar credenciais R2 e enviar o PDF na chave do catálogo antes da primeira venda.
 
 ## Riscos que reduzem notas abaixo de 9
 

@@ -99,6 +99,14 @@ O adaptador cria Stripe Checkout Sessions, valida preço e moeda e transforma ev
 
 ---
 
+# Armazenamento privado
+
+`lib/storage/privateAssets.ts` mantém o contrato `PrivateAssetStore` e implementa o provider Cloudflare R2 compatível com S3.
+
+Produtos guardam somente a chave privada do objeto no catálogo. As rotas validam sessão ou token, pedido aprovado e acesso concedido antes de gerar uma URL `GetObject` assinada por cinco minutos. O bucket não é público e credenciais nunca chegam ao navegador.
+
+---
+
 # Eventos
 
 Toda compra deve permitir integração com:

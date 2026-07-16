@@ -32,6 +32,7 @@ lib/
     products.ts             Dados dos produtos
     index.ts                Consultas, rotas e formatação
   analytics.ts              GA4, GTM e Meta Pixel
+  storage/privateAssets.ts  Contrato privado e provider Cloudflare R2
   cn.ts                     Composição padronizada de classes
   site.ts                   Identidade e URL pública
 ```
@@ -57,6 +58,7 @@ Categorias oficiais: Marketing, IA, Negócios, Produtividade, Design e Automaç�
 5. `generateMetadata` e o JSON-LD usam o SEO do próprio produto.
 6. O checkout recebe `?product=slug`; `/checkout` sem parâmetro usa o primeiro destaque por compatibilidade.
 7. Sitemap e eventos `ViewContent`/`InitiateCheckout` são gerados com os dados do mesmo produto.
+8. Downloads usam `delivery.objectKey`; o provider valida o objeto no R2 e assina a leitura somente depois da autorização server-side.
 
 ## Páginas
 
