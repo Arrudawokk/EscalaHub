@@ -50,6 +50,18 @@ Copie o Signing secret do endpoint para `STRIPE_WEBHOOK_SECRET`. Cada ambiente/e
 
 O Checkout Session informa explicitamente `card`, que foi validado na conta atual. O Pix não deve ser incluído até estar ativado e elegível nas configurações de métodos de pagamento da Stripe. Forçar um método inativo faz a API rejeitar toda a sessão com HTTP 400.
 
+## Recuperação de checkout pendente
+
+O navegador guarda apenas o UUID do pedido e a data de criação. Ao retornar ao checkout, `GET /api/payments/status` consulta a Checkout Session na Stripe e reconcilia o banco antes de responder.
+
+- Sessão `open`: devolve a mesma `checkoutUrl`; nenhuma nova cobrança é criada.
+- Sessão `expired`: marca o pedido anterior como cancelado e permite renovação.
+- Sessão paga: concede acesso conforme o fluxo normal e direciona para `/account`.
+- `POST /api/payments/status` com ação `cancel`: expira a sessão aberta na Stripe antes de cancelar logicamente o pedido.
+- `POST /api/payments/status` com ação `renew`: exige uma nova chave idempotente, confirma que a sessão anterior não está aberta e só então cria outro pedido.
+
+Enquanto o pagamento permanece pendente ou em processamento, a interface repete a consulta a cada 10 segundos. A URL retornada é aceita no cliente somente quando utiliza HTTPS no host `checkout.stripe.com`.
+
 ## URLs de retorno
 
 Sucesso:

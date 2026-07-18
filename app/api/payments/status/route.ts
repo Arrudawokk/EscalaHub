@@ -1,20 +1,35 @@
 import { NextResponse } from "next/server";
-import { getDeliveryDetails } from "@/lib/payments/delivery";
-import { getPaymentGateway } from "@/lib/payments/gateway";
-import { PaymentGatewayError } from "@/lib/payments/interfaces";
-import { getOrderStore, OrderStoreUnavailableError, type OrderRecord } from "@/lib/payments/orderStore";
-import { reconcilePayment } from "@/lib/payments/reconciliation";
-import { logger } from "@/lib/server/logger";
-import { issueCustomerSession } from "@/lib/account/session";
 import { AccountStoreUnavailableError } from "@/lib/account/store";
+import { issueCustomerSession } from "@/lib/account/session";
+import {
+  cancelCheckoutOrder,
+  CheckoutConflictError,
+  inspectCheckoutOrder,
+  renewCheckoutOrder,
+  type CheckoutResult,
+} from "@/lib/payments/checkout";
+import { getDeliveryDetails } from "@/lib/payments/delivery";
+import { PaymentGatewayError } from "@/lib/payments/interfaces";
+import { getOrderStore, OrderStoreUnavailableError } from "@/lib/payments/orderStore";
+import { logger } from "@/lib/server/logger";
+import { isAllowedOrigin } from "@/lib/server/origin";
 
 export const runtime = "nodejs";
 
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+const UUID_V4_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 const RESPONSE_OPTIONS = { headers: { "Cache-Control": "no-store, max-age=0" } };
-const GATEWAY_SYNC_INTERVAL_MS = 8_000;
+const MAX_BODY_BYTES = 4_096;
 
-async function response(order: OrderRecord) {
+type RecoveryAction = "cancel" | "renew";
+type RecoveryBody = { orderId?: string; action?: RecoveryAction };
+
+function json(body: object, status = 200) {
+  return NextResponse.json(body, { status, ...RESPONSE_OPTIONS });
+}
+
+async function checkoutResponse(result: CheckoutResult, status = 200) {
+  const { order, payment } = result;
   if (order.status === "approved" && order.accessStatus === "granted") {
     try {
       await issueCustomerSession(order);
@@ -23,53 +38,111 @@ async function response(order: OrderRecord) {
       logger.warn("account.session_deferred", { orderId: order.externalReference });
     }
   }
-  return NextResponse.json(
+
+  const checkoutUrl =
+    (order.status === "pending" || order.status === "in_process") && payment?.checkoutUrl
+      ? payment.checkoutUrl
+      : undefined;
+  const expired = payment?.statusDetail?.startsWith("expired:") ?? false;
+  const cancelled = order.status === "cancelled";
+  const approved = order.status === "approved";
+
+  return json(
     {
+      orderId: order.externalReference,
       status: order.status,
+      checkoutUrl,
+      expired,
+      cancelled,
+      approved,
+      canResume: Boolean(checkoutUrl),
+      canRenew: !checkoutUrl && (cancelled || order.status === "rejected"),
       delivery: getDeliveryDetails(order),
-      purchaseEventId: order.status === "approved" ? order.externalReference : undefined,
-      accountUrl: order.status === "approved" ? "/account" : undefined,
+      purchaseEventId: approved ? order.externalReference : undefined,
+      accountUrl: approved ? "/account" : undefined,
     },
-    RESPONSE_OPTIONS,
+    status,
   );
+}
+
+function errorResponse(error: unknown, orderId: string | undefined) {
+  if (error instanceof CheckoutConflictError) {
+    logger.warn("payment.recovery_conflict", { orderId });
+    return json({ error: error.message }, error.message === "Pedido não encontrado." ? 404 : 409);
+  }
+  if (error instanceof OrderStoreUnavailableError) {
+    logger.error("payment.recovery_store_unavailable", { orderId });
+    return json({ error: "Consulta temporariamente indisponível." }, 503);
+  }
+  if (error instanceof PaymentGatewayError) {
+    logger.warn("payment.recovery_gateway_unavailable", { orderId });
+    return json({ error: "Não foi possível consultar o pagamento agora." }, 502);
+  }
+  logger.error("payment.recovery_failed", { orderId });
+  return json({ error: "Não foi possível recuperar o pagamento." }, 500);
 }
 
 export async function GET(request: Request) {
   const orderId = new URL(request.url).searchParams.get("orderId")?.trim();
-  if (!orderId || !UUID_PATTERN.test(orderId)) {
-    return NextResponse.json({ error: "orderId inválido." }, { status: 400, ...RESPONSE_OPTIONS });
-  }
+  if (!orderId || !UUID_PATTERN.test(orderId)) return json({ error: "orderId inválido." }, 400);
 
   try {
-    const orderStore = getOrderStore();
-    let order = await orderStore.getByExternalReference(orderId);
-    if (!order) return NextResponse.json({ error: "Pedido não encontrado." }, { status: 404, ...RESPONSE_OPTIONS });
-
-    if ((order.status === "pending" || order.status === "in_process") && order.gatewayPaymentId) {
-      const shouldSync = await orderStore.claimGatewaySync(order.externalReference, GATEWAY_SYNC_INTERVAL_MS);
-      if (shouldSync) {
-        try {
-          const payment = await getPaymentGateway().getPayment(order.gatewayPaymentId);
-          const reconciled = await reconcilePayment(orderStore, order, payment);
-          if (!reconciled.order) {
-            logger.error("payment.status_mismatch", { orderId, gatewayPaymentId: order.gatewayPaymentId });
-            return NextResponse.json({ error: "Não foi possível reconciliar o pagamento." }, { status: 409, ...RESPONSE_OPTIONS });
-          }
-          order = reconciled.order;
-        } catch (error) {
-          if (!(error instanceof PaymentGatewayError)) throw error;
-          logger.warn("payment.status_sync_deferred", { orderId, gatewayPaymentId: order.gatewayPaymentId });
-        }
-      }
-    }
-
-    return await response(order);
+    const order = await getOrderStore().getByExternalReference(orderId);
+    if (!order) return json({ error: "Pedido não encontrado." }, 404);
+    return await checkoutResponse(await inspectCheckoutOrder(order));
   } catch (error) {
-    if (error instanceof OrderStoreUnavailableError) {
-      logger.error("payment.status_store_unavailable", { orderId });
-      return NextResponse.json({ error: "Consulta temporariamente indisponível." }, { status: 503, ...RESPONSE_OPTIONS });
+    return errorResponse(error, orderId);
+  }
+}
+
+export async function POST(request: Request) {
+  if (!isAllowedOrigin(request)) return json({ error: "Origem da requisição não autorizada." }, 403);
+
+  const declaredLength = Number(request.headers.get("content-length") ?? 0);
+  if (Number.isFinite(declaredLength) && declaredLength > MAX_BODY_BYTES) {
+    return json({ error: "Requisição muito grande." }, 413);
+  }
+
+  let body: RecoveryBody;
+  try {
+    const rawBody = await request.text();
+    if (Buffer.byteLength(rawBody, "utf8") > MAX_BODY_BYTES) return json({ error: "Requisição muito grande." }, 413);
+    const parsed: unknown = JSON.parse(rawBody);
+    if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) return json({ error: "Corpo da requisição inválido." }, 400);
+    body = parsed as RecoveryBody;
+  } catch {
+    return json({ error: "Corpo da requisição inválido." }, 400);
+  }
+
+  const orderId = body.orderId?.trim();
+  if (!orderId || !UUID_PATTERN.test(orderId)) return json({ error: "orderId inválido." }, 400);
+  if (body.action !== "cancel" && body.action !== "renew") return json({ error: "Ação inválida." }, 400);
+
+  try {
+    if (body.action === "cancel") {
+      const result = await cancelCheckoutOrder(orderId);
+      logger.info(result.order.status === "cancelled" ? "payment.cancelled_by_customer" : "payment.cancel_not_applied", {
+        orderId: result.order.externalReference,
+        gatewayPaymentId: result.payment?.gatewayPaymentId,
+        status: result.order.status,
+      });
+      return await checkoutResponse(result);
     }
-    logger.error("payment.status_failed", { orderId });
-    return NextResponse.json({ error: "Não foi possível consultar o pedido." }, { status: 500, ...RESPONSE_OPTIONS });
+
+    const idempotencyKey = request.headers.get("x-idempotency-key")?.trim();
+    if (!idempotencyKey || !UUID_V4_PATTERN.test(idempotencyKey)) {
+      return json({ error: "Chave de idempotência inválida." }, 400);
+    }
+
+    const result = await renewCheckoutOrder(orderId, idempotencyKey);
+    logger.info(result.reused ? "payment.recovery_reused" : "payment.recovery_created", {
+      previousOrderId: orderId,
+      orderId: result.order.externalReference,
+      gatewayPaymentId: result.payment?.gatewayPaymentId,
+      status: result.order.status,
+    });
+    return await checkoutResponse(result, result.reused ? 200 : 201);
+  } catch (error) {
+    return errorResponse(error, orderId);
   }
 }

@@ -35,7 +35,7 @@ Construir uma plataforma própria, segura e escalável de venda de produtos digi
 - Atualização, liberação e revogação de acesso na mesma transação do pedido.
 - Reconciliação ativa pelo endpoint de status quando o webhook atrasa.
 - Download protegido por HMAC, expiração curta, validação do pedido e proxy de origem privada.
-- Retomada do pedido no navegador sem persistir e-mail ou dados financeiros.
+- Recuperação de checkout pendente com reutilização da Checkout Session aberta, cancelamento seguro, renovação idempotente e polling de 10 segundos.
 - Evento `Purchase` ligado somente a pedido aprovado, com identificador estável para deduplicação.
 - Camada centralizada de analytics para GA4, Meta Pixel e Google Tag Manager.
 - Eventos `page_view`, `view_item`, `begin_checkout` e `purchase` padronizados no Data Layer.
@@ -68,7 +68,7 @@ Antes de aceitar vendas reais no domínio final:
 
 ## Produção
 
-- Branch oficial: `main`, com toda a sequência RC1–RC6.
+- Branch oficial: `main`, com toda a sequência RC1–RC7.
 - URL operacional validada para o checkout Stripe: `https://escala-hub-six.vercel.app`.
 - Home, produto, checkout, blog e conta respondem HTTP 200.
 - A URL canônica e os retornos da Stripe utilizam `NEXT_PUBLIC_SITE_URL` quando configurada e, na Vercel, recorrem automaticamente a `VERCEL_PROJECT_PRODUCTION_URL`.
@@ -164,5 +164,15 @@ Antes de aceitar vendas reais no domínio final:
 - Validação externa concluída em `https://escala-hub-six.vercel.app/api/payments/create`: HTTP 201, pedido pendente persistido e URL hospedada da Stripe retornada.
 - `npm run lint`, `npm run type-check` e `npm run build`: aprovados com Next.js 16.2.10 e 33 rotas.
 - Diagnóstico completo registrado em `docs/RC6_STRIPE_DIAGNOSIS.md`.
+
+## Qualidade da RC7
+
+- Pedidos pendentes recuperam a Checkout Session autoritativamente com `checkout.sessions.retrieve()`.
+- Sessões abertas são reutilizadas; o backend não cria outro pedido, PaymentIntent ou cobrança.
+- O retorno pelo cancelamento da Stripe mantém o pedido recuperável em vez de apagar o estado local.
+- Cancelamento solicitado pelo cliente expira primeiro a sessão aberta na Stripe e preserva o histórico como `cancelled`.
+- Pedidos expirados ou cancelados podem gerar uma nova sessão com nova chave idempotente, somente depois da confirmação de que a anterior não está aberta.
+- A interface consulta o status a cada 10 segundos e redireciona pagamentos aprovados para `/account`.
+- Detalhes operacionais registrados em `docs/RC7_CHECKOUT_RECOVERY.md`.
 
 Consulte `docs/STRIPE.md`, `docs/STORAGE.md`, `docs/R2.md`, `RELEASE_NOTES.md`, `docs/ACCOUNT.md` e `docs/RC3_ANALYTICS.md` para configuração, fluxos e riscos operacionais atuais. Os relatórios RC anteriores permanecem como histórico do estado auditado na época.

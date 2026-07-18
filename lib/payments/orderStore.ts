@@ -51,7 +51,8 @@ export class OrderStoreUnavailableError extends Error {
 function canTransition(current: PaymentStatus, next: PaymentStatus): boolean {
   if (current === next) return true;
   if (current === "approved") return next === "refunded" || next === "charged_back";
-  if (current === "rejected" || current === "cancelled" || current === "refunded" || current === "charged_back") return false;
+  if (current === "rejected") return next === "cancelled";
+  if (current === "cancelled" || current === "refunded" || current === "charged_back") return false;
   return true;
 }
 

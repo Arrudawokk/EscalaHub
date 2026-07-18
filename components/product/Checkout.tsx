@@ -2,8 +2,8 @@
 
 import Image from "next/image";
 import Link from "next/link";
-import { FormEvent, useEffect, useRef, useState } from "react";
-import { FiAlertCircle, FiArrowLeft, FiCheck, FiCheckCircle, FiCreditCard, FiDownloadCloud, FiFileText, FiLock, FiMail, FiPackage, FiPlus, FiRefreshCw, FiShield } from "react-icons/fi";
+import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
+import { FiAlertCircle, FiArrowLeft, FiCheck, FiCheckCircle, FiCreditCard, FiDownloadCloud, FiFileText, FiLock, FiPackage, FiPlus, FiRefreshCw, FiShield } from "react-icons/fi";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -15,15 +15,39 @@ import { siteConfig } from "@/lib/site";
 
 type SubmissionStatus = "pending" | "in_process" | "approved" | "rejected" | "cancelled" | "refunded" | "charged_back";
 
-const POLL_INTERVAL_MS = 4000;
-const MAX_POLL_ATTEMPTS = 30;
+const POLL_INTERVAL_MS = 10_000;
 const ORDER_RECOVERY_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
 const UUID_PATTERN = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
 
 type RecoverableOrder = { orderId: string; createdAt: number };
 
+type CheckoutStatusResponse = {
+  orderId: string;
+  status: SubmissionStatus;
+  checkoutUrl?: string;
+  expired: boolean;
+  cancelled: boolean;
+  approved: boolean;
+  canResume: boolean;
+  canRenew: boolean;
+  delivery: DeliveryDetails;
+  purchaseEventId?: string;
+  accountUrl?: string;
+  error?: string;
+};
+
 function recoveryKey(productSlug: string): string {
   return `escalahub:stripe-order:${productSlug}`;
+}
+
+function validStripeCheckoutUrl(value: string | undefined): string | null {
+  if (!value) return null;
+  try {
+    const url = new URL(value);
+    return url.protocol === "https:" && url.hostname === "checkout.stripe.com" ? url.toString() : null;
+  } catch {
+    return null;
+  }
 }
 
 const nextSteps = [
@@ -42,8 +66,11 @@ export function Checkout({ product }: { product: Product }) {
   const [status, setStatus] = useState<SubmissionStatus>("pending");
   const [delivery, setDelivery] = useState<DeliveryDetails | null>(null);
   const [purchaseEventId, setPurchaseEventId] = useState<string | null>(null);
-  const [pollingExpired, setPollingExpired] = useState(false);
-  const [pollingRun, setPollingRun] = useState(0);
+  const [checkoutUrl, setCheckoutUrl] = useState<string | null>(null);
+  const [expired, setExpired] = useState(false);
+  const [checkingRecovery, setCheckingRecovery] = useState(false);
+  const [recoveryAction, setRecoveryAction] = useState<"cancel" | "renew" | null>(null);
+  const [accountUrl, setAccountUrl] = useState<string | null>(null);
   const purchaseTrackedRef = useRef(false);
   const idempotencyKeyRef = useRef<string | null>(null);
   const errorRef = useRef<HTMLDivElement | null>(null);
@@ -62,6 +89,29 @@ export function Checkout({ product }: { product: Product }) {
     { question: "Posso baixar novamente?", answer: `O acesso ao material é ${product.accessLabel.toLowerCase()}. Guarde o arquivo baixado em um local seguro.` },
     { question: "Como funciona a garantia?", answer: `Você pode avaliar o material por ${product.guaranteeDays} dias e solicitar reembolso dentro desse prazo.` },
   ];
+
+  const applyCheckoutState = useCallback((data: CheckoutStatusResponse) => {
+    const recoveredCheckoutUrl = data.canResume ? validStripeCheckoutUrl(data.checkoutUrl) : null;
+    setOrderId(data.orderId);
+    setStatus(data.status);
+    setDelivery(data.delivery);
+    setPurchaseEventId(data.purchaseEventId ?? null);
+    setCheckoutUrl(recoveredCheckoutUrl);
+    setExpired(data.expired || data.cancelled);
+    setAccountUrl(data.accountUrl === "/account" ? data.accountUrl : null);
+    setComplete(true);
+
+    try {
+      if (data.approved) {
+        window.localStorage.removeItem(recoveryKey(product.slug));
+      } else {
+        const recovery: RecoverableOrder = { orderId: data.orderId, createdAt: Date.now() };
+        window.localStorage.setItem(recoveryKey(product.slug), JSON.stringify(recovery));
+      }
+    } catch {
+      // O polling continua mesmo quando o navegador bloqueia o armazenamento local.
+    }
+  }, [product.slug]);
 
   useEffect(() => {
     const timeout = window.setTimeout(() => {
@@ -82,6 +132,7 @@ export function Checkout({ product }: { product: Product }) {
         setOrderId(recovery.orderId);
         setComplete(true);
         setStatus("pending");
+        setCheckingRecovery(true);
       } catch {
         window.localStorage.removeItem(recoveryKey(product.slug));
       }
@@ -96,18 +147,11 @@ export function Checkout({ product }: { product: Product }) {
       const returnedOrderId = params.get("orderId");
       if (!stripeResult || !returnedOrderId || !UUID_PATTERN.test(returnedOrderId)) return;
 
-      if (stripeResult === "cancelled") {
-        try {
-          window.localStorage.removeItem(recoveryKey(product.slug));
-        } catch {
-          // O cancelamento continua válido sem armazenamento local.
-        }
-        idempotencyKeyRef.current = null;
-        setErrorMessage("Pagamento cancelado. Nenhuma cobrança foi confirmada e você pode tentar novamente.");
-      } else if (stripeResult === "success") {
+      if (stripeResult === "cancelled" || stripeResult === "success") {
         setOrderId(returnedOrderId);
         setComplete(true);
         setStatus("pending");
+        setCheckingRecovery(true);
         try {
           const recovery: RecoverableOrder = { orderId: returnedOrderId, createdAt: Date.now() };
           window.localStorage.setItem(recoveryKey(product.slug), JSON.stringify(recovery));
@@ -126,42 +170,42 @@ export function Checkout({ product }: { product: Product }) {
   }, [errorMessage]);
 
   useEffect(() => {
-    if (!orderId || status === "approved" || status === "rejected" || status === "cancelled" || status === "refunded" || status === "charged_back") return;
+    if (!orderId) return;
 
-    let attempts = 0;
     let cancelled = false;
     let timeout = 0;
 
     const poll = async () => {
-      attempts += 1;
       try {
         const response = await fetch(`/api/payments/status?orderId=${orderId}`, { cache: "no-store" });
-        if (response.ok) {
-          const data = (await response.json()) as { status: SubmissionStatus; delivery: DeliveryDetails; purchaseEventId?: string; accountUrl?: string };
-          if (cancelled) return;
-          setStatus(data.status);
-          setDelivery(data.delivery);
-          setPurchaseEventId(data.purchaseEventId ?? null);
+        const data = (await response.json().catch(() => ({}))) as Partial<CheckoutStatusResponse>;
+        if (cancelled) return;
+        if (!response.ok || !data.orderId || !data.status || !data.delivery) {
+          setErrorMessage(data.error || "Não foi possível atualizar o pagamento agora. Tentaremos novamente.");
+          timeout = window.setTimeout(poll, POLL_INTERVAL_MS);
+          return;
+        }
+
+        applyCheckoutState(data as CheckoutStatusResponse);
+        setCheckingRecovery(false);
+        setErrorMessage(null);
+        if (data.status === "pending" || data.status === "in_process") {
+          timeout = window.setTimeout(poll, POLL_INTERVAL_MS);
         }
       } catch {
-        // Falha de rede pontual: a próxima tentativa do polling cobre o caso.
+        if (cancelled) return;
+        setErrorMessage("A conexão foi interrompida. Tentaremos consultar o pagamento novamente.");
+        timeout = window.setTimeout(poll, POLL_INTERVAL_MS);
       }
-
-      if (cancelled) return;
-      if (attempts >= MAX_POLL_ATTEMPTS) {
-        setPollingExpired(true);
-        return;
-      }
-      timeout = window.setTimeout(poll, POLL_INTERVAL_MS);
     };
 
-    timeout = window.setTimeout(poll, 1_000);
+    timeout = window.setTimeout(poll, 500);
 
     return () => {
       cancelled = true;
       window.clearTimeout(timeout);
     };
-  }, [orderId, pollingRun, status]);
+  }, [applyCheckoutState, orderId]);
 
   useEffect(() => {
     if (status === "approved" && !purchaseTrackedRef.current && purchaseEventId) {
@@ -172,6 +216,12 @@ export function Checkout({ product }: { product: Product }) {
       );
     }
   }, [status, purchaseEventId, product, productCategory]);
+
+  useEffect(() => {
+    if (status !== "approved" || accountUrl !== "/account") return;
+    const timeout = window.setTimeout(() => window.location.replace(accountUrl), 1_200);
+    return () => window.clearTimeout(timeout);
+  }, [accountUrl, status]);
 
   async function finishOrder(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -210,6 +260,8 @@ export function Checkout({ product }: { product: Product }) {
       setStatus(data.status);
       setDelivery(data.delivery ?? null);
       setPurchaseEventId(data.purchaseEventId ?? null);
+      setAccountUrl(data.accountUrl === "/account" ? data.accountUrl : null);
+      setExpired(false);
 
       if (data.status === "rejected" || data.status === "cancelled") {
         idempotencyKeyRef.current = null;
@@ -228,12 +280,93 @@ export function Checkout({ product }: { product: Product }) {
         window.scrollTo({ top: 0, behavior: "smooth" });
         return;
       }
-      if (!data.checkoutUrl) throw new Error("A Stripe não retornou uma página de pagamento válida.");
-      window.location.assign(data.checkoutUrl);
+      const nextCheckoutUrl = validStripeCheckoutUrl(data.checkoutUrl);
+      if (!nextCheckoutUrl) {
+        setComplete(true);
+        setCheckingRecovery(true);
+        window.scrollTo({ top: 0, behavior: "smooth" });
+        return;
+      }
+      setCheckoutUrl(nextCheckoutUrl);
+      window.location.assign(nextCheckoutUrl);
     } catch (error) {
       setErrorMessage(error instanceof Error ? error.message : "Não foi possível concluir o pagamento.");
     } finally {
       setSubmitting(false);
+    }
+  }
+
+  function resetPaymentAttempt(message: string | null = null) {
+    try {
+      window.localStorage.removeItem(recoveryKey(product.slug));
+    } catch {
+      // Sem armazenamento local, basta limpar o estado atual.
+    }
+    idempotencyKeyRef.current = null;
+    purchaseTrackedRef.current = false;
+    setComplete(false);
+    setOrderId(null);
+    setStatus("pending");
+    setDelivery(null);
+    setPurchaseEventId(null);
+    setCheckoutUrl(null);
+    setExpired(false);
+    setCheckingRecovery(false);
+    setRecoveryAction(null);
+    setAccountUrl(null);
+    setErrorMessage(message);
+  }
+
+  function continuePayment() {
+    const target = validStripeCheckoutUrl(checkoutUrl ?? undefined);
+    if (!target) {
+      setErrorMessage("A sessão de pagamento não está disponível. Aguarde a próxima atualização.");
+      return;
+    }
+    window.location.assign(target);
+  }
+
+  async function performRecoveryAction(action: "cancel" | "renew") {
+    if (!orderId || recoveryAction) return;
+    setRecoveryAction(action);
+    setErrorMessage(null);
+
+    try {
+      const headers: Record<string, string> = { "Content-Type": "application/json" };
+      if (action === "renew") {
+        headers["X-Idempotency-Key"] = idempotencyKeyRef.current ?? (idempotencyKeyRef.current = crypto.randomUUID());
+      }
+      const response = await fetch("/api/payments/status", {
+        method: "POST",
+        headers,
+        body: JSON.stringify({ orderId, action }),
+      });
+      const data = (await response.json().catch(() => ({}))) as Partial<CheckoutStatusResponse>;
+      if (!response.ok || !data.orderId || !data.status || !data.delivery) {
+        if (response.status >= 400 && response.status < 500 && action === "renew") idempotencyKeyRef.current = null;
+        throw new Error(data.error || "Não foi possível atualizar o pagamento.");
+      }
+
+      const checkoutState = data as CheckoutStatusResponse;
+      applyCheckoutState(checkoutState);
+
+      if (action === "cancel") {
+        if (checkoutState.approved) return;
+        if (!checkoutState.cancelled) {
+          throw new Error("O pagamento já está sendo processado e não pode mais ser cancelado.");
+        }
+        resetPaymentAttempt("Pagamento cancelado. Você pode iniciar uma nova compra quando quiser.");
+        return;
+      }
+
+      if (checkoutState.approved) return;
+      const target = validStripeCheckoutUrl(checkoutState.checkoutUrl);
+      if (!target) throw new Error("Não foi possível gerar uma nova página de pagamento.");
+      window.location.assign(target);
+    } catch (error) {
+      setErrorMessage(error instanceof Error ? error.message : "Não foi possível atualizar o pagamento.");
+    } finally {
+      setRecoveryAction(null);
     }
   }
 
@@ -248,46 +381,37 @@ export function Checkout({ product }: { product: Product }) {
       charged_back: "Pagamento contestado",
     };
     const isApproved = status === "approved";
-    const isFailed = status === "rejected" || status === "cancelled" || status === "refunded" || status === "charged_back";
-    const statusColor = isFailed ? "text-red-300" : "text-[#b8ff5c]";
-
-    const resetPaymentAttempt = () => {
-      try {
-        window.localStorage.removeItem(recoveryKey(product.slug));
-      } catch {
-        // Sem armazenamento local, basta limpar o estado atual.
-      }
-      idempotencyKeyRef.current = null;
-      purchaseTrackedRef.current = false;
-      setComplete(false);
-      setOrderId(null);
-      setStatus("pending");
-      setDelivery(null);
-      setPurchaseEventId(null);
-      setPollingExpired(false);
-      setErrorMessage(null);
-    };
+    const isExpired = expired || status === "cancelled";
+    const isFailed = status === "rejected" || status === "refunded" || status === "charged_back";
+    const isResumable = !isExpired && (status === "pending" || status === "in_process") && Boolean(checkoutUrl);
+    const isProcessing = !isApproved && !isExpired && !isFailed && !isResumable;
+    const statusColor = isFailed ? "text-red-300" : isExpired ? "text-amber-300" : "text-[#b8ff5c]";
+    const displayedStatus = isResumable ? "Sessão disponível" : isExpired ? "Sessão expirada" : statusLabel[status];
 
     return (
       <main className="noise grid min-h-screen place-items-center bg-[#070a10] px-5 py-16">
         <div className="relative w-full max-w-xl overflow-hidden rounded-[32px] border border-white/[.1] bg-[#0d1119] p-7 text-center shadow-[0_35px_110px_rgba(0,0,0,.42)] sm:p-10 md:p-12">
           <div className="pointer-events-none absolute -right-24 -top-24 h-64 w-64 rounded-full bg-[#b8ff5c]/10 blur-[90px]" />
-          <span className={`relative mx-auto grid h-16 w-16 place-items-center rounded-full text-2xl shadow-[0_16px_50px_rgba(184,255,92,.2)] ${isFailed ? "bg-red-400 text-red-950" : "bg-[#b8ff5c] text-black"}`}>
-            {isFailed ? <FiAlertCircle aria-hidden="true" /> : isApproved ? <FiCheck aria-hidden="true" /> : <FiRefreshCw className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
+          <span className={`relative mx-auto grid h-16 w-16 place-items-center rounded-full text-2xl shadow-[0_16px_50px_rgba(184,255,92,.2)] ${isFailed ? "bg-red-400 text-red-950" : isExpired ? "bg-amber-300 text-amber-950" : "bg-[#b8ff5c] text-black"}`}>
+            {isFailed || isExpired ? <FiAlertCircle aria-hidden="true" /> : isApproved ? <FiCheck aria-hidden="true" /> : isResumable ? <FiCreditCard aria-hidden="true" /> : <FiRefreshCw className="animate-spin motion-reduce:animate-none" aria-hidden="true" />}
           </span>
-          <p className="eyebrow relative mt-8 justify-center" aria-live="polite">Próxima etapa</p>
+          <p className="eyebrow relative mt-8 justify-center" aria-live="polite">Checkout protegido</p>
           <h1 className="display-title relative mt-4 text-4xl font-semibold text-white md:text-5xl" aria-live="polite">
-            {isFailed ? "Pagamento não concluído." : isApproved ? "Pagamento aprovado." : "Confirmando pagamento."}
+            {isApproved ? "Pagamento aprovado." : isExpired ? "O pagamento anterior expirou." : isFailed ? "Pagamento não concluído." : isResumable ? "Pagamento pendente." : checkingRecovery ? "Consultando seu pagamento." : "Confirmando pagamento."}
           </h1>
           <p className="relative mx-auto mt-5 max-w-md leading-7 text-zinc-300">
-            {isFailed ? (
-              "A cobrança não foi concluída. Você pode voltar ao checkout e tentar novamente com segurança."
-            ) : isApproved && delivery?.status === "ready" ? (
-              "Seu acesso está liberado. Use o botão abaixo para baixar o material com segurança."
+            {isApproved && delivery?.status === "ready" ? (
+              "Seu acesso está liberado. Você será direcionado para sua biblioteca automaticamente."
             ) : isApproved ? (
-              <>Seu pagamento foi confirmado. Se o download não aparecer, fale com o suporte pelo e-mail <strong className="text-white">{siteConfig.contactEmail}</strong>.</>
+              <>Seu pagamento foi confirmado. Você será direcionado para sua conta. Se precisar, fale com <strong className="text-white">{siteConfig.contactEmail}</strong>.</>
+            ) : isExpired ? (
+              "A sessão anterior foi encerrada sem cobrança. Gere um novo pagamento para continuar com segurança."
+            ) : isFailed ? (
+              "A cobrança não foi concluída. Você pode voltar ao checkout e tentar novamente com segurança."
+            ) : isResumable ? (
+              "Encontramos um pagamento iniciado anteriormente. Você pode continuar exatamente de onde parou, sem criar uma nova cobrança."
             ) : (
-              "A confirmação pode levar alguns minutos. Esta página será atualizada automaticamente."
+              "Estamos consultando a Stripe. O status será atualizado automaticamente a cada 10 segundos."
             )}
           </p>
 
@@ -295,21 +419,20 @@ export function Checkout({ product }: { product: Product }) {
 
           <div className="relative mt-8 rounded-2xl border border-white/[.08] bg-white/[.035] p-5 text-left">
             <div className="flex justify-between text-sm"><span className="text-zinc-500">Total</span><strong className="text-white">{formattedPrice}</strong></div>
-            <div className="mt-3 flex justify-between text-sm"><span className="text-zinc-500">Status</span><span className={`font-bold ${statusColor}`}>{statusLabel[status]}</span></div>
+            <div className="mt-3 flex justify-between text-sm"><span className="text-zinc-500">Status</span><span className={`font-bold ${statusColor}`}>{displayedStatus}</span></div>
           </div>
           <p className="relative mt-5 text-xs leading-5 text-zinc-500">Pedido: <span className="font-mono text-zinc-400">{orderId}</span>. Guarde este código para recuperar o acesso, se necessário.</p>
-          {isFailed ? (
-            <Button type="button" size="lg" className="relative mt-8 w-full" onClick={resetPaymentAttempt}>Tentar novamente</Button>
-          ) : isApproved && delivery?.status === "ready" ? (
-            <div className="relative mt-8 grid gap-3"><Button asChild size="lg" className="w-full"><a href={delivery.downloadUrl}><FiDownloadCloud /> Baixar meu e-book</a></Button><Button asChild variant="outline" size="lg" className="w-full"><Link href="/account"><FiPackage /> Acessar minha biblioteca</Link></Button></div>
-          ) : isApproved ? (
-            <Button asChild variant="outline" size="lg" className="relative mt-8 w-full"><a href={`mailto:${siteConfig.contactEmail}`}><FiMail /> Falar com o suporte</a></Button>
-          ) : (
-            <>
-              {pollingExpired ? <Button type="button" size="lg" className="relative mt-8 w-full" onClick={() => { setPollingExpired(false); setPollingRun((run) => run + 1); }}><FiRefreshCw /> Verificar pagamento novamente</Button> : null}
-              <Button asChild variant={pollingExpired ? "outline" : "primary"} size="lg" className={`relative w-full ${pollingExpired ? "mt-3" : "mt-8"}`}><Link href="/">Voltar para a EscalaHub</Link></Button>
-            </>
-          )}
+          {isApproved ? (
+            <div className="relative mt-8 grid gap-3"><Button asChild size="lg" className="w-full"><Link href="/account"><FiPackage /> Acessar minha biblioteca</Link></Button>{delivery?.status === "ready" ? <Button asChild variant="outline" size="lg" className="w-full"><a href={delivery.downloadUrl}><FiDownloadCloud /> Baixar meu e-book</a></Button> : null}</div>
+          ) : isExpired ? (
+            <div className="relative mt-8 grid gap-3"><Button type="button" size="lg" className="w-full" isLoading={recoveryAction === "renew"} loadingLabel="Gerando novo pagamento" onClick={() => performRecoveryAction("renew")}><FiPlus /> Gerar novo pagamento</Button><Button type="button" variant="outline" size="lg" className="w-full" disabled={Boolean(recoveryAction)} onClick={() => resetPaymentAttempt()}><FiArrowLeft /> Voltar ao checkout</Button></div>
+          ) : isFailed ? (
+            <Button type="button" size="lg" className="relative mt-8 w-full" onClick={() => resetPaymentAttempt()}>Tentar novamente</Button>
+          ) : isResumable ? (
+            <div className="relative mt-8 grid gap-3"><Button type="button" size="lg" className="w-full" disabled={Boolean(recoveryAction)} onClick={continuePayment}><FiCreditCard /> Continuar pagamento</Button><Button type="button" variant="destructive" size="lg" className="w-full" isLoading={recoveryAction === "cancel"} loadingLabel="Cancelando pagamento" onClick={() => performRecoveryAction("cancel")}><FiAlertCircle /> Cancelar pagamento</Button></div>
+          ) : isProcessing ? (
+            <div className="relative mt-8 grid gap-3"><p className="text-sm text-zinc-400" role="status">A próxima verificação acontece automaticamente.</p><Button asChild variant="outline" size="lg" className="w-full"><Link href="/">Voltar para a EscalaHub</Link></Button></div>
+          ) : null}
         </div>
       </main>
     );
@@ -352,7 +475,7 @@ export function Checkout({ product }: { product: Product }) {
             </section>
 
             <section aria-labelledby="checkout-pagamento-title">
-              <div className="mb-5 flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#b8ff5c] text-sm font-black text-black">2</span><div><h2 id="checkout-pagamento-title" className="display-title text-2xl font-bold text-white">Pagamento</h2><p className="mt-0.5 text-xs text-zinc-500">Cartão e Pix são processados no checkout seguro da Stripe.</p></div></div>
+              <div className="mb-5 flex items-center gap-3"><span className="grid h-8 w-8 place-items-center rounded-full bg-[#b8ff5c] text-sm font-black text-black">2</span><div><h2 id="checkout-pagamento-title" className="display-title text-2xl font-bold text-white">Pagamento</h2><p className="mt-0.5 text-xs text-zinc-500">O cartão é processado no checkout seguro da Stripe.</p></div></div>
               <div className="rounded-[26px] border border-white/[.085] bg-white/[.025] p-5 sm:p-6">
                 <div className="flex items-start gap-4"><span className="grid h-11 w-11 shrink-0 place-items-center rounded-xl bg-[#b8ff5c]/10 text-xl text-[#b8ff5c]"><FiCreditCard aria-hidden="true" /></span><div><h3 className="font-bold text-white">Pagamento protegido pela Stripe</h3><p className="mt-2 text-sm leading-6 text-zinc-400">Na próxima etapa, escolha uma forma de pagamento disponível e conclua sem compartilhar os dados financeiros com a EscalaHub.</p></div></div>
               </div>

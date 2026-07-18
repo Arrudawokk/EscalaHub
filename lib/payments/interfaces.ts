@@ -11,6 +11,7 @@ export interface PaymentGateway {
   readonly id: string;
   createPayment(input: CreatePaymentInput): Promise<PaymentResult>;
   getPayment(gatewayPaymentId: string): Promise<PaymentResult>;
+  cancelPayment(gatewayPaymentId: string): Promise<PaymentResult>;
   parseWebhook(input: WebhookVerificationInput): Promise<WebhookNotification | null>;
 }
 

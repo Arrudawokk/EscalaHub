@@ -3,15 +3,14 @@ import { NextResponse } from "next/server";
 import { AccountStoreUnavailableError } from "@/lib/account/store";
 import { issueCustomerSession } from "@/lib/account/session";
 import { getProductBySlug } from "@/lib/catalog";
+import { CheckoutConflictError, createOrReuseCheckout } from "@/lib/payments/checkout";
 import { getDeliveryDetails } from "@/lib/payments/delivery";
-import { getPaymentGateway } from "@/lib/payments/gateway";
 import { PaymentGatewayError } from "@/lib/payments/interfaces";
-import { getOrderStore, OrderStoreUnavailableError, type OrderRecord } from "@/lib/payments/orderStore";
-import { reconcilePayment } from "@/lib/payments/reconciliation";
-import type { CreatePaymentInput, PaymentResult } from "@/lib/payments/types";
-import { isValidEmail, splitFullName } from "@/lib/payments/utils";
+import { OrderStoreUnavailableError, type OrderRecord } from "@/lib/payments/orderStore";
+import type { PaymentResult } from "@/lib/payments/types";
+import { isValidEmail } from "@/lib/payments/utils";
 import { logger } from "@/lib/server/logger";
-import { hasDeploymentSiteUrl, SITE_URL } from "@/lib/site";
+import { isAllowedOrigin } from "@/lib/server/origin";
 
 export const runtime = "nodejs";
 
@@ -30,64 +29,6 @@ function json(body: object, status: number) {
 
 function badRequest(message: string) {
   return json({ error: message }, 400);
-}
-
-function isAllowedOrigin(request: Request): boolean {
-  const origin = request.headers.get("origin");
-  if (!origin) return process.env.NODE_ENV !== "production";
-
-  const allowedOrigins = new Set([new URL(request.url).origin]);
-  const forwardedHost = request.headers.get("x-forwarded-host")?.split(",")[0]?.trim();
-  const host = forwardedHost || request.headers.get("host")?.trim();
-  if (host) {
-    const forwardedProtocol = request.headers.get("x-forwarded-proto")?.split(",")[0]?.trim();
-    const protocol = forwardedProtocol || new URL(request.url).protocol.replace(":", "");
-    if (protocol === "https" || (process.env.NODE_ENV !== "production" && protocol === "http")) {
-      allowedOrigins.add(`${protocol}://${host}`);
-    }
-  }
-  const configuredSiteUrl = process.env.NEXT_PUBLIC_SITE_URL?.trim();
-  if (configuredSiteUrl) {
-    try {
-      allowedOrigins.add(new URL(configuredSiteUrl).origin);
-    } catch {
-      return false;
-    }
-  }
-  return allowedOrigins.has(origin);
-}
-
-function checkoutUrls(productSlug: string, orderId: string): { successUrl: string; cancelUrl: string } | null {
-  if (!hasDeploymentSiteUrl) return null;
-  try {
-    const successUrl = new URL("/checkout", SITE_URL);
-    successUrl.searchParams.set("product", productSlug);
-    successUrl.searchParams.set("orderId", orderId);
-    successUrl.searchParams.set("stripe", "success");
-    // A Stripe substitui este marcador literal depois de concluir a sessão.
-    successUrl.searchParams.set("session_id", "{CHECKOUT_SESSION_ID}");
-
-    const cancelUrl = new URL("/checkout", SITE_URL);
-    cancelUrl.searchParams.set("product", productSlug);
-    cancelUrl.searchParams.set("orderId", orderId);
-    cancelUrl.searchParams.set("stripe", "cancelled");
-
-    return {
-      successUrl: successUrl.toString().replace("%7BCHECKOUT_SESSION_ID%7D", "{CHECKOUT_SESSION_ID}"),
-      cancelUrl: cancelUrl.toString(),
-    };
-  } catch {
-    return null;
-  }
-}
-
-function isSameOrder(order: OrderRecord, productSlug: string, email: string): boolean {
-  return (
-    order.productSlug === productSlug &&
-    order.gateway === "stripe" &&
-    order.method === "stripe_checkout" &&
-    order.payerEmail.toLowerCase() === email.toLowerCase()
-  );
 }
 
 async function paymentResponse(result: PaymentResult, order: OrderRecord, status = 201) {
@@ -142,59 +83,27 @@ export async function POST(request: Request) {
   if (clientIdempotencyKey && !UUID_V4_PATTERN.test(clientIdempotencyKey)) return badRequest("Chave de idempotência inválida.");
 
   const externalReference = clientIdempotencyKey ?? randomUUID();
-  const urls = checkoutUrls(product.slug, externalReference);
-  if (!urls) return json({ error: "Checkout temporariamente indisponível." }, 503);
-
-  const { firstName, lastName } = splitFullName(name);
-  const input: CreatePaymentInput = {
-    productSlug: product.slug,
-    amount: product.price,
-    currency: product.currency,
-    payer: { email, firstName, lastName },
-    externalReference,
-    method: "stripe_checkout",
-    ...urls,
-  };
 
   try {
-    const orderStore = getOrderStore();
-    const now = new Date().toISOString();
-    const initialOrder: OrderRecord = {
-      externalReference,
-      productSlug: product.slug,
-      amount: product.price,
-      currency: product.currency,
-      payerEmail: email,
+    const result = await createOrReuseCheckout({
+      product,
       payerName: name,
-      gateway: "stripe",
-      method: "stripe_checkout",
-      status: "pending",
-      accessStatus: "pending",
-      createdAt: now,
-      updatedAt: now,
-    };
-    const created = await orderStore.create(initialOrder);
+      payerEmail: email,
+      externalReference,
+    });
+    if (!result.payment) return json({ error: "Não foi possível iniciar o pagamento." }, 409);
 
-    if (!created) {
-      const existing = await orderStore.getByExternalReference(externalReference);
-      if (!existing || !isSameOrder(existing, product.slug, email)) {
-        return json({ error: "A chave de idempotência já foi utilizada em outro pedido." }, 409);
-      }
-      if (existing.gatewayPaymentId) {
-        const existingPayment = await getPaymentGateway().getPayment(existing.gatewayPaymentId);
-        const reconciled = await reconcilePayment(orderStore, existing, existingPayment);
-        if (!reconciled.order) return json({ error: "O pagamento existente não corresponde ao pedido." }, 409);
-        return await paymentResponse(existingPayment, reconciled.order, 200);
-      }
-    }
-
-    const result = await getPaymentGateway().createPayment(input);
-    const currentOrder = (await orderStore.getByExternalReference(externalReference)) ?? initialOrder;
-    const reconciled = await reconcilePayment(orderStore, currentOrder, result);
-    if (!reconciled.order) return json({ error: "Não foi possível reconciliar o pagamento com o pedido." }, 409);
-    logger.info("payment.created", { orderId: externalReference, gatewayPaymentId: result.gatewayPaymentId, status: reconciled.order.status });
-    return await paymentResponse(result, reconciled.order);
+    logger.info(result.reused ? "payment.reused" : "payment.created", {
+      orderId: result.order.externalReference,
+      gatewayPaymentId: result.payment.gatewayPaymentId,
+      status: result.order.status,
+    });
+    return await paymentResponse(result.payment, result.order, result.reused ? 200 : 201);
   } catch (error) {
+    if (error instanceof CheckoutConflictError) {
+      logger.warn("payment.checkout_conflict", { orderId: externalReference });
+      return json({ error: error.message }, 409);
+    }
     if (error instanceof OrderStoreUnavailableError) {
       logger.error("payment.store_unavailable", { orderId: externalReference });
       return json({ error: "Checkout temporariamente indisponível." }, 503);

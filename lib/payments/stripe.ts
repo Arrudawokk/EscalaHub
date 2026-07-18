@@ -146,6 +146,30 @@ export class StripeGateway implements PaymentGateway {
     }
   }
 
+  async cancelPayment(gatewayPaymentId: string): Promise<PaymentResult> {
+    if (!STRIPE_ID_PATTERN.test(gatewayPaymentId)) {
+      throw new PaymentGatewayError("Identificador de sessão Stripe inválido.");
+    }
+
+    try {
+      const current = await this.client.checkout.sessions.retrieve(gatewayPaymentId);
+      if (current.status !== "open") return this.toPaymentResult(current);
+
+      try {
+        return this.toPaymentResult(await this.client.checkout.sessions.expire(gatewayPaymentId));
+      } catch (error) {
+        if (!(error instanceof Stripe.errors.StripeInvalidRequestError)) throw error;
+
+        const latest = await this.client.checkout.sessions.retrieve(gatewayPaymentId);
+        if (latest.status === "open") throw error;
+        return this.toPaymentResult(latest);
+      }
+    } catch (error) {
+      if (error instanceof PaymentGatewayError) throw error;
+      throw new PaymentGatewayError("Falha ao cancelar a sessão na Stripe.", error);
+    }
+  }
+
   async parseWebhook(input: WebhookVerificationInput): Promise<WebhookNotification | null> {
     if (!input.signatureHeader || input.signatureHeader.length > 2_048) {
       throw new InvalidWebhookRequestError("Cabeçalho Stripe-Signature ausente ou inválido.");
