@@ -1,7 +1,9 @@
 # RC6 — Diagnóstico definitivo da Stripe
 
-**Data:** 18/07/2026  
-**Endpoint:** `POST /api/payments/create`  
+**Data:** 18/07/2026
+
+**Endpoint:** `POST /api/payments/create`
+
 **Ambiente validado:** `https://escala-hub-six.vercel.app`
 
 ## Sintoma
