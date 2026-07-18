@@ -23,7 +23,7 @@ export function ProductHero({ product }: { product: Product }) {
       <div className="pointer-events-none absolute right-[-18%] top-[15%] h-[560px] w-[560px] rounded-full bg-violet-600/[.09] blur-[150px]" />
 
       <div className="container-default relative">
-        <Link href="/" className="hidden min-h-11 items-center gap-2 rounded-lg py-2 text-sm font-semibold text-zinc-300 outline-none transition-[color,transform] hover:-translate-x-0.5 hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-4 focus-visible:ring-offset-[#070a10] sm:inline-flex" aria-label="Voltar para a página inicial">
+        <Link href="/" className="hidden min-h-11 items-center gap-2 rounded-lg py-2 text-sm font-semibold text-zinc-300 outline-none transition-[color,transform] hover:-translate-x-0.5 hover:text-white focus-visible:ring-2 focus-visible:ring-[#3B82F6] focus-visible:ring-offset-4 focus-visible:ring-offset-[#070a10] sm:inline-flex" aria-label="Voltar para a página inicial">
           <FiArrowLeft /> Voltar para o início
         </Link>
 

@@ -10,9 +10,9 @@ export function ArticleHeader({ article, author }: { article: Article; author: A
       <div className="pointer-events-none absolute left-[-12rem] top-[-16rem] h-[38rem] w-[38rem] rounded-full bg-blue-600/[.12] blur-[150px]" />
       <div className="container-default relative">
         <nav aria-label="Breadcrumb" className="flex flex-wrap items-center gap-2 text-xs font-semibold text-zinc-500">
-          <Link href="/" className="rounded py-2 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400">Início</Link>
+          <Link href="/" className="rounded py-2 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-[#3B82F6]">Início</Link>
           <FiChevronRight aria-hidden="true" />
-          <Link href="/blog" className="rounded py-2 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400">Blog</Link>
+          <Link href="/blog" className="rounded py-2 outline-none transition-colors hover:text-white focus-visible:ring-2 focus-visible:ring-[#3B82F6]">Blog</Link>
           <FiChevronRight aria-hidden="true" />
           <span className="text-zinc-300" aria-current="page">{article.category}</span>
         </nav>

@@ -1,3 +1,5 @@
+import { BrandLogo } from "@/components/brand/BrandLogo";
+
 export default function Loading() {
   return (
     <main className="noise min-h-screen overflow-hidden bg-[#070a10]" aria-busy="true" aria-live="polite">
@@ -5,7 +7,7 @@ export default function Loading() {
       <div className="premium-grid pointer-events-none fixed inset-0 opacity-35" />
       <div className="border-b border-white/[.07] bg-[#070a10]/85">
         <div className="container-default flex h-[76px] items-center justify-between">
-          <div className="flex items-center gap-3"><span className="brand-mark">E</span><span className="brand-wordmark">EscalaHub</span></div>
+          <BrandLogo imageClassName="h-11 w-11" />
           <div className="skeleton h-10 w-28 rounded-full" />
         </div>
       </div>

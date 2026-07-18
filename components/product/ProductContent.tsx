@@ -158,7 +158,7 @@ export function ProductContent({ product }: { product: Product }) {
           <div className="divide-y divide-white/[.08] border-y border-white/[.08]">
             {product.faq.map(({ question, answer }) => (
               <details key={question} className="group py-1">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-xl py-6 text-left text-lg font-bold tracking-[-.015em] text-white outline-none transition-colors hover:text-[#b8ff5c] focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-4 focus-visible:ring-offset-[#090c12]">
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-6 rounded-xl py-6 text-left text-lg font-bold tracking-[-.015em] text-white outline-none transition-colors hover:text-[#b8ff5c] focus-visible:ring-2 focus-visible:ring-[#3B82F6] focus-visible:ring-offset-4 focus-visible:ring-offset-[#090c12]">
                   <span>{question}</span>
                   <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-white/[.1] bg-white/[.035] text-zinc-400 transition-[transform,color,border-color] duration-300 group-open:rotate-45 group-open:border-[#b8ff5c]/30 group-open:text-[#b8ff5c]"><FiPlus aria-hidden="true" /></span>
                 </summary>

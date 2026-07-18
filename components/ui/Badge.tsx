@@ -4,9 +4,9 @@ import { cn } from "@/lib/cn";
 export type BadgeVariant = "success" | "neutral" | "info" | "warning" | "danger";
 
 const badgeVariants: Record<BadgeVariant, string> = {
-  success: "border-emerald-400/25 bg-emerald-400/10 text-emerald-100",
+  success: "border-[#B8FF5C]/30 bg-[#B8FF5C]/10 text-[#DFFFBA]",
   neutral: "border-white/15 bg-white/10 text-zinc-100",
-  info: "border-blue-400/25 bg-blue-400/10 text-blue-100",
+  info: "border-[#3B82F6]/30 bg-[#3B82F6]/10 text-blue-100",
   warning: "border-amber-400/25 bg-amber-400/10 text-amber-100",
   danger: "border-red-400/25 bg-red-400/10 text-red-100",
 };

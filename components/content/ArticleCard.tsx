@@ -11,7 +11,7 @@ export function ArticleCard({ article, featured = false }: { article: Article; f
         {article.updatedAt === article.publishedAt ? <Badge variant="neutral">Publicado recentemente</Badge> : <Badge variant="success">Atualizado recentemente</Badge>}
       </div>
       <h2 className={`display-title mt-6 font-semibold leading-[1.05] text-white ${featured ? "text-3xl sm:text-4xl" : "text-2xl"}`}>
-        <Link href={getArticlePath(article)} className="rounded-lg outline-none transition-colors hover:text-[#b8ff5c] focus-visible:ring-2 focus-visible:ring-blue-400">
+        <Link href={getArticlePath(article)} className="rounded-lg outline-none transition-colors hover:text-[#b8ff5c] focus-visible:ring-2 focus-visible:ring-[#3B82F6]">
           {article.title}
         </Link>
       </h2>
@@ -20,7 +20,7 @@ export function ArticleCard({ article, featured = false }: { article: Article; f
         <span>{formatArticleDate(article.updatedAt)}</span>
         <span className="flex items-center gap-1.5"><FiClock aria-hidden="true" /> {getArticleReadingTime(article)} min de leitura</span>
       </div>
-      <Link href={getArticlePath(article)} className="mt-6 inline-flex min-h-11 items-center gap-2 self-start rounded-lg py-2 text-sm font-bold text-[#b8ff5c] outline-none transition-[gap,color] hover:gap-3 hover:text-[#d9ffab] focus-visible:ring-2 focus-visible:ring-blue-400">
+      <Link href={getArticlePath(article)} className="mt-6 inline-flex min-h-11 items-center gap-2 self-start rounded-lg py-2 text-sm font-bold text-[#b8ff5c] outline-none transition-[gap,color] hover:gap-3 hover:text-[#d9ffab] focus-visible:ring-2 focus-visible:ring-[#3B82F6]">
         Ler artigo <FiArrowUpRight aria-hidden="true" />
       </Link>
     </article>

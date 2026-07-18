@@ -15,9 +15,9 @@ export const metadata: Metadata = {
     url: "/blog",
     siteName: siteConfig.name,
     locale: siteConfig.locale,
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "Blog EscalaHub" }],
+    images: [{ url: "/brand/logo.png", width: 1254, height: 1254, alt: "Logo oficial da EscalaHub" }],
   },
-  twitter: { card: "summary_large_image", title: "Blog EscalaHub", description: "Conhecimento prático para aplicar com método.", images: ["/twitter-image"] },
+  twitter: { card: "summary_large_image", title: "Blog EscalaHub", description: "Conhecimento prático para aplicar com método.", images: ["/brand/logo.png"] },
 };
 
 export default function BlogPage() {

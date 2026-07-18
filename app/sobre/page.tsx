@@ -10,8 +10,8 @@ export const metadata: Metadata = {
   title: "Sobre a EscalaHub",
   description: "Conheça a missão, os valores e os princípios editoriais e de produto que orientam a EscalaHub.",
   alternates: { canonical: "/sobre" },
-  openGraph: { title: "Sobre a EscalaHub", description: "Produtos digitais práticos, informação clara e crescimento com método.", url: "/sobre", type: "website", siteName: siteConfig.name, locale: siteConfig.locale, images: ["/opengraph-image"] },
-  twitter: { card: "summary_large_image", title: "Sobre a EscalaHub", description: "Conheça os princípios que orientam a plataforma.", images: ["/twitter-image"] },
+  openGraph: { title: "Sobre a EscalaHub", description: "Produtos digitais práticos, informação clara e crescimento com método.", url: "/sobre", type: "website", siteName: siteConfig.name, locale: siteConfig.locale, images: ["/brand/logo.png"] },
+  twitter: { card: "summary_large_image", title: "Sobre a EscalaHub", description: "Conheça os princípios que orientam a plataforma.", images: ["/brand/logo.png"] },
 };
 
 const values = [

@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   title: "Política de Privacidade",
   description: "Entenda quais dados a EscalaHub pode tratar, para quais finalidades e quais são os seus direitos.",
   alternates: { canonical: "/privacidade" },
-  openGraph: { title: "Política de Privacidade | EscalaHub", description: "Práticas de privacidade e proteção de dados da EscalaHub.", url: "/privacidade", type: "website", images: ["/opengraph-image"] },
-  twitter: { card: "summary_large_image", title: "Política de Privacidade | EscalaHub", description: "Práticas de privacidade e proteção de dados.", images: ["/twitter-image"] },
+  openGraph: { title: "Política de Privacidade | EscalaHub", description: "Práticas de privacidade e proteção de dados da EscalaHub.", url: "/privacidade", type: "website", images: ["/brand/logo.png"] },
+  twitter: { card: "summary_large_image", title: "Política de Privacidade | EscalaHub", description: "Práticas de privacidade e proteção de dados.", images: ["/brand/logo.png"] },
 };
 
 const sections: LegalSection[] = [

@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   title: "Contato e suporte",
   description: "Entre em contato com a EscalaHub para dúvidas sobre produtos, acesso, garantia, privacidade ou parcerias.",
   alternates: { canonical: "/contato" },
-  openGraph: { title: "Contato EscalaHub", description: "Canais oficiais para dúvidas e suporte.", url: "/contato", type: "website", siteName: siteConfig.name, locale: siteConfig.locale, images: ["/opengraph-image"] },
-  twitter: { card: "summary_large_image", title: "Contato EscalaHub", description: "Fale com a EscalaHub pelos canais oficiais.", images: ["/twitter-image"] },
+  openGraph: { title: "Contato EscalaHub", description: "Canais oficiais para dúvidas e suporte.", url: "/contato", type: "website", siteName: siteConfig.name, locale: siteConfig.locale, images: ["/brand/logo.png"] },
+  twitter: { card: "summary_large_image", title: "Contato EscalaHub", description: "Fale com a EscalaHub pelos canais oficiais.", images: ["/brand/logo.png"] },
 };
 
 const socialLinks = [

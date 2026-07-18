@@ -4,6 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { FormEvent, useCallback, useEffect, useRef, useState } from "react";
 import { FiAlertCircle, FiArrowLeft, FiCheck, FiCheckCircle, FiCreditCard, FiDownloadCloud, FiFileText, FiLock, FiPackage, FiPlus, FiRefreshCw, FiShield } from "react-icons/fi";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Badge } from "@/components/ui/Badge";
 import { Button } from "@/components/ui/Button";
 import { Input } from "@/components/ui/Input";
@@ -447,16 +448,13 @@ export function Checkout({ product }: { product: Product }) {
 
       <header className="relative border-b border-white/[.07] bg-[#070a10]/80 backdrop-blur-2xl">
         <div className="container-default flex h-[76px] items-center justify-between">
-          <Link href="/" className="group flex min-h-11 items-center gap-2.5 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-4 focus-visible:ring-offset-[#070a10] sm:gap-3" aria-label="EscalaHub — página inicial">
-            <span className="grid h-9 w-9 place-items-center rounded-[11px] bg-[#b8ff5c] text-sm font-black text-black shadow-[0_0_30px_rgba(184,255,92,.16)] transition-transform duration-300 group-hover:-rotate-3 group-hover:scale-105">E</span>
-            <span className="display-title text-[19px] font-bold text-white sm:text-xl">EscalaHub</span>
-          </Link>
+          <Link href="/" className="group flex min-h-11 items-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6] focus-visible:ring-offset-4 focus-visible:ring-offset-[#070a10]" aria-label="EscalaHub — página inicial"><BrandLogo imageClassName="h-11 w-11" /></Link>
           <Badge variant="neutral" className="border-white/[.1] bg-white/[.055] py-2 text-zinc-100"><FiLock className="text-[#b8ff5c]" aria-hidden="true" /> <span className="hidden sm:inline">Ambiente seguro</span><span className="sm:hidden">Seguro</span></Badge>
         </div>
       </header>
 
       <div className="container-default relative pb-28 pt-8 sm:pb-32 sm:pt-10 md:pt-14 lg:pb-14">
-        <Link href={productHref} className="inline-flex min-h-11 items-center gap-2 rounded-lg py-2 text-sm font-semibold text-zinc-300 outline-none transition-[color,transform] hover:-translate-x-0.5 hover:text-white focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-4 focus-visible:ring-offset-[#070a10]" aria-label={`Voltar para ${product.title}`}><FiArrowLeft /> Voltar para o produto</Link>
+        <Link href={productHref} className="inline-flex min-h-11 items-center gap-2 rounded-lg py-2 text-sm font-semibold text-zinc-300 outline-none transition-[color,transform] hover:-translate-x-0.5 hover:text-white focus-visible:ring-2 focus-visible:ring-[#3B82F6] focus-visible:ring-offset-4 focus-visible:ring-offset-[#070a10]" aria-label={`Voltar para ${product.title}`}><FiArrowLeft /> Voltar para o produto</Link>
 
         <div className="mt-8 grid gap-8 lg:grid-cols-[1.08fr_.92fr] lg:items-start lg:gap-14">
           <form id="checkout-form" onSubmit={finishOrder} className="space-y-8" aria-label="Finalizar compra" aria-busy={submitting}>
@@ -551,7 +549,7 @@ export function Checkout({ product }: { product: Product }) {
           <div className="divide-y divide-white/[.08] border-y border-white/[.08]">
             {quickQuestions.map(({ question, answer }) => (
               <details key={question} className="group py-1">
-                <summary className="flex cursor-pointer list-none items-center justify-between gap-5 rounded-xl py-5 text-left font-bold text-white outline-none transition-colors hover:text-[#b8ff5c] focus-visible:ring-2 focus-visible:ring-blue-400 focus-visible:ring-offset-4 focus-visible:ring-offset-[#070a10]"><span>{question}</span><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/[.1] bg-white/[.035] text-zinc-400 transition-[transform,color] duration-300 group-open:rotate-45 group-open:text-[#b8ff5c]"><FiPlus aria-hidden="true" /></span></summary>
+                <summary className="flex cursor-pointer list-none items-center justify-between gap-5 rounded-xl py-5 text-left font-bold text-white outline-none transition-colors hover:text-[#b8ff5c] focus-visible:ring-2 focus-visible:ring-[#3B82F6] focus-visible:ring-offset-4 focus-visible:ring-offset-[#070a10]"><span>{question}</span><span className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-white/[.1] bg-white/[.035] text-zinc-400 transition-[transform,color] duration-300 group-open:rotate-45 group-open:text-[#b8ff5c]"><FiPlus aria-hidden="true" /></span></summary>
                 <div className="grid grid-rows-[0fr] transition-[grid-template-rows] duration-300 group-open:grid-rows-[1fr]"><div className="overflow-hidden"><p className="pb-5 pr-9 text-sm leading-6 text-zinc-400">{answer}</p></div></div>
               </details>
             ))}

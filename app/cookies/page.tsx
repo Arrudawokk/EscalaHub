@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   title: "Política de Cookies",
   description: "Saiba como cookies e tecnologias semelhantes podem ser utilizados na EscalaHub.",
   alternates: { canonical: "/cookies" },
-  openGraph: { title: "Política de Cookies | EscalaHub", description: "Uso de cookies e tecnologias semelhantes na plataforma.", url: "/cookies", type: "website", images: ["/opengraph-image"] },
-  twitter: { card: "summary_large_image", title: "Política de Cookies | EscalaHub", description: "Uso de cookies e tecnologias semelhantes.", images: ["/twitter-image"] },
+  openGraph: { title: "Política de Cookies | EscalaHub", description: "Uso de cookies e tecnologias semelhantes na plataforma.", url: "/cookies", type: "website", images: ["/brand/logo.png"] },
+  twitter: { card: "summary_large_image", title: "Política de Cookies | EscalaHub", description: "Uso de cookies e tecnologias semelhantes.", images: ["/brand/logo.png"] },
 };
 
 const sections: LegalSection[] = [

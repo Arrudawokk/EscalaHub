@@ -1,0 +1,27 @@
+{
+  "name": "EscalaHub",
+  "short_name": "EscalaHub",
+  "description": "Produtos digitais premium e métodos práticos para transformar conhecimento em crescimento profissional.",
+  "id": "/",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#071008",
+  "theme_color": "#071008",
+  "lang": "pt-BR",
+  "categories": ["business", "education"],
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ]
+}

@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   title: "Termos de Uso",
   description: "Condições para utilizar a plataforma, adquirir produtos digitais e acessar conteúdos da EscalaHub.",
   alternates: { canonical: "/termos" },
-  openGraph: { title: "Termos de Uso | EscalaHub", description: "Condições de uso da plataforma e dos produtos digitais.", url: "/termos", type: "website", images: ["/opengraph-image"] },
-  twitter: { card: "summary_large_image", title: "Termos de Uso | EscalaHub", description: "Condições de uso da plataforma e dos produtos digitais.", images: ["/twitter-image"] },
+  openGraph: { title: "Termos de Uso | EscalaHub", description: "Condições de uso da plataforma e dos produtos digitais.", url: "/termos", type: "website", images: ["/brand/logo.png"] },
+  twitter: { card: "summary_large_image", title: "Termos de Uso | EscalaHub", description: "Condições de uso da plataforma e dos produtos digitais.", images: ["/brand/logo.png"] },
 };
 
 const sections: LegalSection[] = [

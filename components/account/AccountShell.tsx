@@ -1,5 +1,6 @@
 import Link from "next/link";
 import { FiBookOpen, FiClipboard, FiHome, FiLogOut, FiUser } from "react-icons/fi";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Button } from "@/components/ui/Button";
 import type { CustomerProfile } from "@/lib/account/types";
 import { logoutAccount } from "@/app/account/actions";
@@ -18,7 +19,7 @@ export function AccountShell({ profile, children }: { profile: CustomerProfile; 
       <div className="premium-grid pointer-events-none fixed inset-0 opacity-25" />
       <header className="relative border-b border-white/[.07] bg-[#080b11]/90 backdrop-blur-xl">
         <div className="container-default flex min-h-20 items-center justify-between gap-4">
-          <Link href="/" className="flex min-h-11 items-center gap-3 rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-blue-400" aria-label="EscalaHub — início"><span className="brand-mark" aria-hidden="true">E</span><span className="brand-wordmark">EscalaHub</span></Link>
+          <Link href="/" className="flex min-h-11 items-center rounded-xl outline-none focus-visible:ring-2 focus-visible:ring-[#3B82F6]" aria-label="EscalaHub — início"><BrandLogo /></Link>
           <div className="flex min-w-0 items-center gap-3"><span className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-[#b8ff5c]/15 text-xs font-black text-[#b8ff5c]">{initials}</span><span className="hidden min-w-0 sm:block"><strong className="block max-w-48 truncate text-sm">{profile.name || "Cliente EscalaHub"}</strong><span className="block max-w-48 truncate text-xs text-zinc-500">{profile.email}</span></span></div>
         </div>
       </header>

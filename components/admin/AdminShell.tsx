@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { FiLogOut, FiSearch, FiShield } from "react-icons/fi";
 import { logoutAdmin } from "@/app/admin/actions";
+import { BrandLogo } from "@/components/brand/BrandLogo";
 import { Button } from "@/components/ui/Button";
 import { AdminNav } from "./AdminNav";
 
@@ -10,13 +11,13 @@ export function AdminShell({ children }: { children: React.ReactNode }) {
       <div className="premium-grid pointer-events-none fixed inset-0 opacity-20" />
       <header className="relative z-20 border-b border-white/[.07] bg-[#070a10]/90 backdrop-blur-xl lg:hidden">
         <div className="container-default flex min-h-18 items-center justify-between gap-4">
-          <Link href="/admin" className="flex items-center gap-3 rounded-xl focus-visible:ring-2 focus-visible:ring-blue-400"><span className="brand-mark" aria-hidden="true">E</span><span className="brand-wordmark">EscalaHub</span></Link>
+          <Link href="/admin" aria-label="EscalaHub — painel administrativo" className="flex items-center rounded-xl focus-visible:ring-2 focus-visible:ring-[#3B82F6]"><BrandLogo imageClassName="h-10 w-10" /></Link>
           <span className="inline-flex items-center gap-2 text-xs font-bold text-zinc-400"><FiShield aria-hidden="true" />Admin</span>
         </div>
       </header>
       <div className="relative mx-auto grid min-h-screen w-full max-w-[1600px] lg:grid-cols-[260px_minmax(0,1fr)]">
         <aside className="hidden border-r border-white/[.07] bg-[#080b11]/88 px-5 py-7 backdrop-blur-xl lg:flex lg:flex-col">
-          <Link href="/admin" className="flex items-center gap-3 rounded-xl focus-visible:ring-2 focus-visible:ring-blue-400"><span className="brand-mark" aria-hidden="true">E</span><span className="brand-wordmark">EscalaHub</span></Link>
+          <Link href="/admin" aria-label="EscalaHub — painel administrativo" className="flex items-center rounded-xl focus-visible:ring-2 focus-visible:ring-[#3B82F6]"><BrandLogo /></Link>
           <div className="mt-8 rounded-xl border border-emerald-400/15 bg-emerald-400/[.06] px-3.5 py-3"><p className="flex items-center gap-2 text-xs font-bold text-emerald-200"><span className="size-2 rounded-full bg-emerald-400 shadow-[0_0_12px_rgba(52,211,153,.7)]" />Operação online</p><p className="mt-1.5 text-[11px] text-zinc-500">Ambiente administrativo auditado</p></div>
           <div className="mt-7 flex-1"><AdminNav /></div>
           <form action={logoutAdmin} className="border-t border-white/[.07] pt-4"><Button type="submit" variant="ghost" className="w-full justify-start text-zinc-400"><FiLogOut aria-hidden="true" />Encerrar sessão</Button></form>

@@ -34,9 +34,9 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       publishedTime: article.publishedAt,
       modifiedTime: article.updatedAt,
       authors: [siteConfig.name],
-      images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: article.title }],
+      images: [{ url: "/brand/logo.png", width: 1254, height: 1254, alt: "Logo oficial da EscalaHub" }],
     },
-    twitter: { card: "summary_large_image", title: article.title, description: article.description, images: ["/twitter-image"] },
+    twitter: { card: "summary_large_image", title: article.title, description: article.description, images: ["/brand/logo.png"] },
   };
 }
 
@@ -61,7 +61,7 @@ export default async function ArticlePage({ params }: ArticlePageProps) {
     timeRequired: `PT${getArticleReadingTime(article)}M`,
     author: { "@type": "Organization", name: author.name, url: SITE_URL },
     publisher: { "@id": `${SITE_URL}/#organization` },
-    image: `${SITE_URL}/opengraph-image`,
+    image: `${SITE_URL}/brand/logo.png`,
   };
   const breadcrumbSchema = {
     "@context": "https://schema.org",

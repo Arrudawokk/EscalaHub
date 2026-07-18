@@ -75,7 +75,7 @@ Usar a biblioteca `react-icons/fi`. Ícones de controles seguem o tamanho do bot
 
 ### Marca
 
-O símbolo e o wordmark usam `.brand-mark` e `.brand-wordmark`. Não redesenhar a marca com classes locais, alterar as proporções ou aplicar outras cores.
+A marca oficial usa o componente `BrandLogo`, que carrega o arquivo original em `public/brand/logo.png`. O favicon oficial fica em `public/brand/favicon.png`, com derivados técnicos apenas para os tamanhos exigidos por navegadores e dispositivos. Não redesenhar, recolorir, recortar, aplicar efeitos ou alterar as proporções desses ativos.
 
 ## Imagens
 

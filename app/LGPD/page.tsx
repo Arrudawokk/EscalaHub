@@ -5,8 +5,8 @@ export const metadata: Metadata = {
   title: "LGPD e Direitos do Titular",
   description: "Canal e informações para exercer direitos relacionados a dados pessoais tratados pela EscalaHub.",
   alternates: { canonical: "/LGPD" },
-  openGraph: { title: "LGPD e Direitos do Titular | EscalaHub", description: "Informações sobre proteção de dados e exercício de direitos.", url: "/LGPD", type: "website", images: ["/opengraph-image"] },
-  twitter: { card: "summary_large_image", title: "LGPD e Direitos do Titular | EscalaHub", description: "Proteção de dados e exercício de direitos.", images: ["/twitter-image"] },
+  openGraph: { title: "LGPD e Direitos do Titular | EscalaHub", description: "Informações sobre proteção de dados e exercício de direitos.", url: "/LGPD", type: "website", images: ["/brand/logo.png"] },
+  twitter: { card: "summary_large_image", title: "LGPD e Direitos do Titular | EscalaHub", description: "Proteção de dados e exercício de direitos.", images: ["/brand/logo.png"] },
 };
 
 const sections: LegalSection[] = [

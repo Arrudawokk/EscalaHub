@@ -8,7 +8,7 @@ export const metadata: Metadata = {
   title: { default: siteConfig.title, template: "%s | EscalaHub" },
   description: siteConfig.description,
   applicationName: siteConfig.name,
-  manifest: "/manifest.webmanifest",
+  manifest: "/site.webmanifest",
   keywords: ["produtos digitais", "infoprodutos", "tráfego pago", "marketing digital", "Meta Ads", "Google Ads", "TikTok Ads", "e-book", "EscalaHub"],
   authors: [{ name: siteConfig.name, url: SITE_URL }],
   creator: siteConfig.name,
@@ -29,18 +29,30 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     locale: siteConfig.locale,
     type: "website",
-    images: [{ url: "/opengraph-image", width: 1200, height: 630, alt: "EscalaHub — Conhecimento que vira resultado" }],
+    images: [{ url: "/brand/logo.png", width: 1254, height: 1254, alt: "Logo oficial da EscalaHub" }],
   },
   twitter: {
     card: "summary_large_image",
     title: siteConfig.title,
     description: siteConfig.description,
-    images: [{ url: "/twitter-image", alt: "EscalaHub — Conhecimento que vira resultado" }],
+    images: [{ url: "/brand/logo.png", alt: "Logo oficial da EscalaHub" }],
   },
-  icons: { icon: "/icon.svg", shortcut: "/icon.svg", apple: "/apple-icon" },
+  icons: {
+    icon: [
+      { url: "/favicon.ico", sizes: "any" },
+      { url: "/favicon-16x16.png", sizes: "16x16", type: "image/png" },
+      { url: "/favicon-32x32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icon-192.png", sizes: "192x192", type: "image/png" },
+      { url: "/icon-512.png", sizes: "512x512", type: "image/png" },
+    ],
+    shortcut: ["/favicon.ico"],
+    apple: [{ url: "/apple-touch-icon.png", sizes: "180x180", type: "image/png" }],
+  },
+  appleWebApp: { capable: true, title: siteConfig.name, statusBarStyle: "black-translucent" },
+  other: { "msapplication-TileColor": "#071008", "msapplication-TileImage": "/mstile-150x150.png" },
 };
 
-export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#06080d", colorScheme: "dark" };
+export const viewport: Viewport = { width: "device-width", initialScale: 1, themeColor: "#071008", colorScheme: "dark" };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
   const sameAs = Object.values(siteConfig.social).filter((url): url is string => Boolean(url));
@@ -50,7 +62,7 @@ export default function RootLayout({ children }: Readonly<{ children: React.Reac
     "@id": `${SITE_URL}/#organization`,
     name: siteConfig.name,
     url: SITE_URL,
-    logo: `${SITE_URL}/icon.svg`,
+    logo: `${SITE_URL}/brand/logo.png`,
     description: siteConfig.description,
     email: siteConfig.contactEmail,
     sameAs,
