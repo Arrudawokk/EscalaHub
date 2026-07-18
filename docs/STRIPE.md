@@ -46,6 +46,10 @@ Copie o Signing secret do endpoint para `STRIPE_WEBHOOK_SECRET`. Cada ambiente/e
 8. O evento é reconsultado na API, reconciliado com pedido, valor, moeda e e-mail e aplicado de forma idempotente.
 9. Apenas pagamento `paid` concede acesso e prepara o evento Purchase. Reembolso ou disputa revoga o acesso.
 
+## Métodos de pagamento
+
+O Checkout Session informa explicitamente `card`, que foi validado na conta atual. O Pix não deve ser incluído até estar ativado e elegível nas configurações de métodos de pagamento da Stripe. Forçar um método inativo faz a API rejeitar toda a sessão com HTTP 400.
+
 ## URLs de retorno
 
 Sucesso:

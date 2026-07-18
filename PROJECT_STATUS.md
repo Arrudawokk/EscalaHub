@@ -6,7 +6,7 @@
 
 **Status:** código V1 aprovado e publicado; lançamento comercial condicionado ao checklist operacional
 
-**Última atualização:** 16/07/2026
+**Última atualização:** 18/07/2026
 
 ## Objetivo
 
@@ -28,7 +28,7 @@ Construir uma plataforma própria, segura e escalável de venda de produtos digi
 - Design System e interface responsiva.
 - SEO técnico com metadata, canonical, Open Graph, Twitter Cards, sitemap, robots e JSON-LD.
 - Analytics preparado para GA4, GTM e Meta Pixel.
-- Pré-checkout próprio com pagamento por cartão ou Pix na página hospedada da Stripe.
+- Pré-checkout próprio com pagamento por cartão na página hospedada da Stripe; Pix permanece condicionado à ativação na conta.
 - Criação de pagamento idempotente, preço validado pelo catálogo e reconciliação server-to-server.
 - Persistência transacional de pedidos em PostgreSQL por meio da abstração `OrderStore`.
 - Webhook com assinatura, janela antirreplay, deduplicação persistente e transições de estado protegidas.
@@ -68,17 +68,17 @@ Antes de aceitar vendas reais no domínio final:
 
 ## Produção
 
-- Branch oficial: `main`, com toda a sequência RC1–RC5.
-- URL operacional validada: `https://teste-site-qnxk.vercel.app`.
+- Branch oficial: `main`, com toda a sequência RC1–RC6.
+- URL operacional validada para o checkout Stripe: `https://escala-hub-six.vercel.app`.
 - Home, produto, checkout, blog e conta respondem HTTP 200.
 - A URL canônica e os retornos da Stripe utilizam `NEXT_PUBLIC_SITE_URL` quando configurada e, na Vercel, recorrem automaticamente a `VERCEL_PROJECT_PRODUCTION_URL`.
-- O repositório possui dois projetos Vercel conectados. `teste-site-qnxk` é o projeto operacional; `teste-site` deve ser revisado e removido somente depois de confirmar domínios e variáveis no painel.
+- O repositório possui três projetos Vercel conectados. `escala-hub` é o único validado com a configuração completa do checkout Stripe; `teste-site-qnxk` retorna 503 no checkout e `teste-site` permanece sem alias operacional.
 - O endereço `teste-site.vercel.app` não está atribuído ao deploy operacional e não deve ser divulgado.
 
 ## Prioridades P0 restantes da aplicação
 
 - Executar a homologação operacional acima no domínio definitivo.
-- Configurar Stripe, banco, R2 e analytics na Vercel; credenciais reais da Stripe e do R2 ainda não foram fornecidas.
+- Consolidar Stripe, banco, R2 e analytics no projeto Vercel operacional antes de remover os projetos duplicados.
 - Apontar o domínio final para este projeto antes de iniciar campanhas. `escalahub.com` ainda publica outra aplicação.
 - Validar backup, restauração e alertas do banco de produção.
 - Consolidar os dois projetos Vercel em um único projeto, preservando variáveis e domínios do projeto operacional.
@@ -154,5 +154,15 @@ Antes de aceitar vendas reais no domínio final:
 - Canonical, Open Graph, robots, sitemap e callback do webhook validados com a URL operacional da Vercel.
 - `npm install`, `npm run lint`, `npm run type-check` e `npm run build`: aprovados; 33 rotas geradas e nenhuma vulnerabilidade reportada pelo npm.
 - Detalhes e pendências operacionais registrados em `docs/RC5_REPORT.md`.
+
+## Qualidade da RC6
+
+- O erro Stripe deixou de ser ocultado: o bloco de diagnóstico registra o erro da SDK e seus campos tipados no servidor.
+- Primeiro erro confirmado: `StripeInvalidRequestError`, HTTP 400, porque `pix` não está ativado na conta.
+- Segundo erro confirmado: nenhum método dinâmico elegível estava ativo para a sessão.
+- Correção final: Checkout Session restrita ao método `card`, comprovadamente aceito pela conta atual.
+- Validação externa concluída em `https://escala-hub-six.vercel.app/api/payments/create`: HTTP 201, pedido pendente persistido e URL hospedada da Stripe retornada.
+- `npm run lint`, `npm run type-check` e `npm run build`: aprovados com Next.js 16.2.10 e 33 rotas.
+- Diagnóstico completo registrado em `docs/RC6_STRIPE_DIAGNOSIS.md`.
 
 Consulte `docs/STRIPE.md`, `docs/STORAGE.md`, `docs/R2.md`, `RELEASE_NOTES.md`, `docs/ACCOUNT.md` e `docs/RC3_ANALYTICS.md` para configuração, fluxos e riscos operacionais atuais. Os relatórios RC anteriores permanecem como histórico do estado auditado na época.
