@@ -34,7 +34,7 @@ export async function generateMetadata({ params }: ArticlePageProps): Promise<Me
       publishedTime: article.publishedAt,
       modifiedTime: article.updatedAt,
       authors: [siteConfig.name],
-      images: [{ url: "/brand/logo.png", width: 1254, height: 1254, alt: "Logo oficial da EscalaHub" }],
+      images: [{ url: "/brand/logo.png", width: 1536, height: 1024, alt: "Logo oficial da EscalaHub" }],
     },
     twitter: { card: "summary_large_image", title: article.title, description: article.description, images: ["/brand/logo.png"] },
   };

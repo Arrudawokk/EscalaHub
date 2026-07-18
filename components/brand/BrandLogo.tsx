@@ -15,9 +15,9 @@ export function BrandLogo({ className, imageClassName, wordmarkClassName, showWo
         src="/brand/logo.png"
         alt=""
         aria-hidden="true"
-        width={1254}
-        height={1254}
-        sizes="48px"
+        width={1536}
+        height={1024}
+        sizes="66px"
         unoptimized
         className={cn("brand-logo-image", imageClassName)}
       />

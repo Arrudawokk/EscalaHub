@@ -29,7 +29,7 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     locale: siteConfig.locale,
     type: "website",
-    images: [{ url: "/brand/logo.png", width: 1254, height: 1254, alt: "Logo oficial da EscalaHub" }],
+    images: [{ url: "/brand/logo.png", width: 1536, height: 1024, alt: "Logo oficial da EscalaHub" }],
   },
   twitter: {
     card: "summary_large_image",

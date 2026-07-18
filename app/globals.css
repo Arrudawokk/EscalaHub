@@ -106,7 +106,7 @@ input[type="checkbox"], input[type="radio"] { accent-color: var(--accent); }
 .icon-tile { display: inline-grid; width: 2.75rem; height: 2.75rem; place-items: center; flex: 0 0 auto; border: 1px solid rgba(255,255,255,.075); border-radius: var(--radius-control); background: rgba(255,255,255,.04); color: var(--text-secondary); box-shadow: inset 0 1px rgba(255,255,255,.025); }
 .icon-tile svg { width: 1.125rem; height: 1.125rem; }
 .brand-logo { display: inline-flex; min-width: 0; align-items: center; gap: .65rem; }
-.brand-logo-image { display: block; width: 2.75rem; height: 2.75rem; flex: 0 0 auto; object-fit: contain; }
+.brand-logo-image { display: block; width: 4.125rem; height: 2.75rem; flex: 0 0 auto; object-fit: contain; }
 .brand-wordmark { font-family: var(--font-heading), sans-serif; color: #fff; font-size: 1.1875rem; font-weight: 750; letter-spacing: -.045em; }
 .interactive-card {
   position: relative; isolation: isolate; transition: transform .38s var(--ease-premium), border-color .38s ease, box-shadow .38s ease, background-color .38s ease;
