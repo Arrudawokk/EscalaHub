@@ -83,7 +83,6 @@ export class StripeGateway implements PaymentGateway {
           client_reference_id: input.externalReference,
           customer_email: input.payer.email,
           line_items: [{ price: this.priceId, quantity: 1 }],
-          payment_method_types: ["card", "pix"],
           success_url: input.successUrl,
           cancel_url: input.cancelUrl,
           submit_type: "pay",
